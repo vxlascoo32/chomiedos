@@ -1,0 +1,27 @@
+// Node 20+. Requiere API_KEY (API-Football, api-sports.io). MAX_CALLS limita pedidos por corrida.
+import fs from 'node:fs';
+const KEY=process.env.API_KEY,MAX=+process.env.MAX_CALLS||90;
+if(!KEY){console.error('Falta API_KEY');process.exit(1)}
+const leagues=JSON.parse(fs.readFileSync('data/leagues.json','utf8'));
+const now=new Date(),yr=now.getUTCFullYear(),eu=now.getUTCMonth()>=6?yr:yr-1;
+let calls=0;
+async function api(path,q){calls++;const r=await fetch(`https://v3.football.api-sports.io/${path}?`+new URLSearchParams(q),{headers:{'x-apisports-key':KEY}});
+if(!r.ok)throw new Error(path+' '+r.status);return (await r.json()).response||[]}
+const upd=s=>{try{return new Date(JSON.parse(fs.readFileSync(`data/l/${s}.json`,'utf8')).updated).getTime()}catch{return 0}};
+const pl=(a,f)=>a.map(p=>({name:p.player.name,team:p.statistics[0].team.name,value:f(p.statistics[0])})).filter(p=>p.value);
+const order=[...leagues].sort((a,b)=>upd(a.slug)-upd(b.slug)); // actualiza primero las más viejas
+for(const l of order){
+  if(calls+7>MAX)break;
+  const q={league:l.api,season:l.season||(l.cal?yr:eu)};
+  try{
+    const teams=await api('teams',q),fx=await api('fixtures',q),st=await api('standings',q),
+      sc=await api('players/topscorers',q),as=await api('players/topassists',q),
+      ye=await api('players/topyellowcards',q),re=await api('players/topredcards',q);
+    const out={slug:l.slug,name:l.name,updated:now.toISOString(),
+      teams:teams.map(t=>({name:t.team.name,logo:t.team.logo})),
+      matches:fx.map(f=>({date:f.fixture.date,status:f.fixture.status.short,round:f.league.round,home:f.teams.home.name,homeLogo:f.teams.home.logo,away:f.teams.away.name,awayLogo:f.teams.away.logo,hg:f.goals.home,ag:f.goals.away})),
+      standings:(st[0]?.league.standings||[]).flat().map(r=>({rank:r.rank,team:r.team.name,logo:r.team.logo,pj:r.all.played,g:r.all.win,e:r.all.draw,p:r.all.lose,dg:r.goalsDiff,pts:r.points})),
+      scorers:pl(sc,s=>s.goals.total),assists:pl(as,s=>s.goals.assists),yellows:pl(ye,s=>s.cards.yellow),reds:pl(re,s=>s.cards.red)};
+    fs.writeFileSync(`data/l/${l.slug}.json`,JSON.stringify(out));console.log('OK',l.slug,calls);
+  }catch(e){console.error('ERR',l.slug,e.message)}
+}
