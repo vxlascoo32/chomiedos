@@ -45,6 +45,9 @@ tr.top td:first-child{box-shadow:inset 4px 0 var(--acc)}
 td:last-child{font:700 19px 'Barlow Condensed',sans-serif}
 tbody tr{border-bottom:1px solid var(--line)}
 .nota{padding:12px 14px;color:var(--mute);font-size:13px}
+.sub{display:flex;gap:8px;padding:12px 14px 0}
+.sub button{border:1px solid var(--line);background:none;color:var(--ink);font:500 15px Barlow,sans-serif;padding:6px 14px;border-radius:999px;cursor:pointer}
+.sub button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 @media(max-width:700px){
 .wrap{grid-template-columns:1fr}
 nav{flex-direction:row;overflow-x:auto;padding-bottom:4px}
@@ -68,13 +71,13 @@ nav{flex-direction:row;overflow-x:auto;padding-bottom:4px}
    Más adelante se reemplazan por datos reales de una API. */
 const LIGAS = [
   {n:'Liga Argentina', espn:'arg.1', t:['River Plate','Boca Juniors','Independiente','Racing','San Lorenzo','Estudiantes','Vélez','Talleres']},
-  {n:'Brasileirão', t:['Flamengo','Palmeiras','Botafogo','Fluminense','São Paulo','Corinthians','Atlético Mineiro','Internacional']},
-  {n:'Liga Uruguaya', t:['Peñarol','Nacional','Defensor Sporting','Danubio','Liverpool','Wanderers','Cerro','Montevideo City Torque']},
-  {n:'Premier League', t:['Manchester City','Arsenal','Liverpool','Chelsea','Manchester United','Tottenham','Newcastle','Aston Villa']},
-  {n:'LaLiga', t:['Real Madrid','Barcelona','Atlético de Madrid','Athletic Club','Real Sociedad','Villarreal','Sevilla','Betis']},
-  {n:'Serie A', t:['Inter','Milan','Juventus','Napoli','Roma','Lazio','Atalanta','Fiorentina']},
-  {n:'Bundesliga', t:['Bayern Múnich','Borussia Dortmund','Bayer Leverkusen','RB Leipzig','Stuttgart','Eintracht Frankfurt','Wolfsburgo','Friburgo']},
-  {n:'Ligue 1', t:['PSG','Marsella','Mónaco','Lyon','Lille','Niza','Lens','Rennes']}
+  {n:'Brasileirão', espn:'bra.1', t:['Flamengo','Palmeiras','Botafogo','Fluminense','São Paulo','Corinthians','Atlético Mineiro','Internacional']},
+  {n:'Liga Uruguaya', espn:'uru.1', t:['Peñarol','Nacional','Defensor Sporting','Danubio','Liverpool','Wanderers','Cerro','Montevideo City Torque']},
+  {n:'Premier League', espn:'eng.1', t:['Manchester City','Arsenal','Liverpool','Chelsea','Manchester United','Tottenham','Newcastle','Aston Villa']},
+  {n:'LaLiga', espn:'esp.1', t:['Real Madrid','Barcelona','Atlético de Madrid','Athletic Club','Real Sociedad','Villarreal','Sevilla','Betis']},
+  {n:'Serie A', espn:'ita.1', t:['Inter','Milan','Juventus','Napoli','Roma','Lazio','Atalanta','Fiorentina']},
+  {n:'Bundesliga', espn:'ger.1', t:['Bayern Múnich','Borussia Dortmund','Bayer Leverkusen','RB Leipzig','Stuttgart','Eintracht Frankfurt','Wolfsburgo','Friburgo']},
+  {n:'Ligue 1', espn:'fra.1', t:['PSG','Marsella','Mónaco','Lyon','Lille','Niza','Lens','Rennes']}
 ];
 const JUGADAS = 4; // cuántas fechas ya se jugaron
 const DIAS_FECHA = [0,1,1,2]; // los 4 partidos de cada fecha se reparten en 3 días distintos
@@ -122,7 +125,7 @@ function tabla(fechas){
 }
 
 /* ========== 3. PANTALLA ========== */
-const S = {liga:0, vista:'partidos', dia:null, diaE:{}, tk:0}; // dia/diaE: día elegido; tk: evita mezclar cargas viejas
+const S = {liga:0, vista:'partidos', sub:'torneo', dia:null, diaE:{}, tk:0}; // dia/diaE: día elegido; tk: evita mezclar cargas viejas
 
 // Lista de días que tienen partidos en la liga elegida. Los días vacíos no aparecen,
 // por eso al navegar con las flechas se saltean solos.
@@ -236,7 +239,15 @@ async function cargarEspn(cab, tk){
         h += D.partidos.filter(p => p.dia === dia).map(htmlPartido).join('');
       }
     } else {
-      h += D.tabla.map(g => (g.nombre ? `<p class="nota"><b>${esc(g.nombre)}</b></p>` : '') + htmlTabla(g.filas)).join('');
+      if(D.anual){
+        h += `<div class="sub">` + [['torneo','Torneo actual'],['anual','Tabla anual']].map(([k,t]) =>
+          `<button class="${S.sub===k?'on':''}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
+      }
+      if(D.anual && S.sub === 'anual'){
+        h += htmlTabla(D.anual) + '<p class="nota">Suma la fase regular del Apertura y del Clausura. Los playoffs no cuentan.</p>';
+      } else {
+        h += D.tabla.map(g => (g.nombre ? `<p class="nota"><b>${esc(g.nombre)}</b></p>` : '') + htmlTabla(g.filas)).join('');
+      }
     }
     h += `<p class="nota">Datos de ESPN, actualizados el ${new Date(D.actualizado).toLocaleString('es-AR')}.</p>`;
   } catch(err){
