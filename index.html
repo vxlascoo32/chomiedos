@@ -7,23 +7,27 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#eef1f5;--panel:#fff;--ink:#14213d;--mute:#5d6b82;--line:#dbe1ea;--acc:#1f8a4c;--accbg:#e3f3ea}
-@media(prefers-color-scheme:dark){:root{--bg:#10151f;--panel:#182030;--ink:#e8edf5;--mute:#93a1b8;--line:#27324a;--acc:#3ecf7a;--accbg:#1a3a2b}}
+:root{--bg:#e7efe9;--panel:#fff;--ink:#0f2418;--mute:#5a6f62;--line:#d2e0d6;--acc:#12804a;--onacc:#fff;--hd:#0e6b3d;--live:#d33b3b}
+@media(prefers-color-scheme:dark){:root{--bg:#0b1410;--panel:#13201a;--ink:#e5f1e9;--mute:#8da699;--line:#223529;--acc:#2fcf7a;--onacc:#06220f;--hd:#0b5a33;--live:#ff6b6b}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 Barlow,system-ui,sans-serif}
-header{max-width:960px;margin:auto;padding:20px 16px 12px}
+header{background:var(--hd);color:#fff;padding:16px 0 14px;margin-bottom:14px}
+header div{max-width:960px;margin:auto;padding:0 16px}
 h1{margin:0;font:700 36px 'Barlow Condensed',Arial Narrow,sans-serif;letter-spacing:.5px}
-header p{margin:0;color:var(--mute)}
+header p{margin:0;color:rgba(255,255,255,.8)}
 .wrap{max-width:960px;margin:auto;padding:0 12px 40px;display:grid;grid-template-columns:190px 1fr;gap:14px;align-items:start}
 nav{display:flex;flex-direction:column;gap:2px}
 nav button{text-align:left;border:0;background:none;color:var(--ink);font:500 16px Barlow,sans-serif;padding:9px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
 nav button:hover{background:var(--line)}
-nav button.on{background:var(--acc);color:#fff}
+nav button.on{background:var(--acc);color:var(--onacc)}
 button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 main{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .tabs{display:flex;border-bottom:1px solid var(--line)}
 .tabs button{flex:1;border:0;background:none;color:var(--mute);font:600 20px 'Barlow Condensed',sans-serif;padding:12px;cursor:pointer;border-bottom:3px solid transparent}
 .tabs button.on{color:var(--ink);border-bottom-color:var(--acc)}
+.sub{display:flex;gap:8px;padding:12px 14px 0}
+.sub button{border:1px solid var(--line);background:none;color:var(--ink);font:500 15px Barlow,sans-serif;padding:6px 14px;border-radius:999px;cursor:pointer}
+.sub button.on{background:var(--acc);border-color:var(--acc);color:var(--onacc)}
 .fecha{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
 .fecha div{text-align:center}
 .fecha b{display:block;font:700 24px 'Barlow Condensed',sans-serif}
@@ -31,23 +35,24 @@ main{background:var(--panel);border:1px solid var(--line);border-radius:12px;ove
 .fecha span{color:var(--mute);font-size:14px}
 .fecha button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--ink);font-size:22px;cursor:pointer}
 .fecha button:disabled{opacity:.3;cursor:default}
-.m{display:grid;grid-template-columns:1fr 78px 1fr;align-items:center;gap:8px;padding:13px 14px;border-bottom:1px solid var(--line)}
-.m:last-child{border:0}
-.m .h{text-align:right}
+.mw{border-bottom:1px solid var(--line)}
+.mw:last-child{border:0}
+.m{display:grid;grid-template-columns:1fr 78px 1fr;align-items:center;gap:8px;padding:13px 14px}
+.m .h,.g .h{text-align:right}
 .sc{text-align:center;font:700 28px 'Barlow Condensed',sans-serif;letter-spacing:1px}
 .sc.next{font-size:17px;color:var(--mute);font-weight:600}
+.vivo{display:block;font:600 12px Barlow,sans-serif;color:var(--live);letter-spacing:0}
 .w{font-weight:500;color:var(--acc)}
+.g{display:grid;grid-template-columns:1fr 78px 1fr;gap:8px;padding:0 14px 12px;font-size:13px;line-height:1.35;color:var(--mute)}
 table{width:100%;border-collapse:collapse;font-size:15px}
 th,td{padding:9px 6px;text-align:center}
 th{color:var(--mute);font-weight:500;font-size:13px;border-bottom:1px solid var(--line)}
 td:nth-child(2),th:nth-child(2){text-align:left;width:100%}
-tr.top td:first-child{box-shadow:inset 4px 0 var(--acc)}
 td:last-child{font:700 19px 'Barlow Condensed',sans-serif}
 tbody tr{border-bottom:1px solid var(--line)}
+.ley{display:flex;flex-wrap:wrap;gap:6px 16px;padding:10px 14px;font-size:13px;color:var(--mute)}
+.ley i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
 .nota{padding:12px 14px;color:var(--mute);font-size:13px}
-.sub{display:flex;gap:8px;padding:12px 14px 0}
-.sub button{border:1px solid var(--line);background:none;color:var(--ink);font:500 15px Barlow,sans-serif;padding:6px 14px;border-radius:999px;cursor:pointer}
-.sub button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 @media(max-width:700px){
 .wrap{grid-template-columns:1fr}
 nav{flex-direction:row;overflow-x:auto;padding-bottom:4px}
@@ -56,173 +61,114 @@ nav{flex-direction:row;overflow-x:auto;padding-bottom:4px}
 </style>
 </head>
 <body>
-<header>
+<header><div>
   <h1>Chomiedos</h1>
   <p>Resultados y tablas de posiciones</p>
-</header>
+</div></header>
 <div class="wrap">
   <nav id="nav" aria-label="Ligas"></nav>
   <main id="main"></main>
 </div>
 
 <script>
-/* ========== 1. DATOS ==========
-   Por ahora son datos de EJEMPLO que genera este mismo código.
-   Más adelante se reemplazan por datos reales de una API. */
+/* Para agregar una liga: sumá una línea acá con su código de ESPN
+   (y la misma en actualizar.py). */
 const LIGAS = [
-  {n:'Liga Argentina', espn:'arg.1', t:['River Plate','Boca Juniors','Independiente','Racing','San Lorenzo','Estudiantes','Vélez','Talleres']},
-  {n:'Brasileirão', espn:'bra.1', t:['Flamengo','Palmeiras','Botafogo','Fluminense','São Paulo','Corinthians','Atlético Mineiro','Internacional']},
-  {n:'Liga Uruguaya', espn:'uru.1', t:['Peñarol','Nacional','Defensor Sporting','Danubio','Liverpool','Wanderers','Cerro','Montevideo City Torque']},
-  {n:'Premier League', espn:'eng.1', t:['Manchester City','Arsenal','Liverpool','Chelsea','Manchester United','Tottenham','Newcastle','Aston Villa']},
-  {n:'LaLiga', espn:'esp.1', t:['Real Madrid','Barcelona','Atlético de Madrid','Athletic Club','Real Sociedad','Villarreal','Sevilla','Betis']},
-  {n:'Serie A', espn:'ita.1', t:['Inter','Milan','Juventus','Napoli','Roma','Lazio','Atalanta','Fiorentina']},
-  {n:'Bundesliga', espn:'ger.1', t:['Bayern Múnich','Borussia Dortmund','Bayer Leverkusen','RB Leipzig','Stuttgart','Eintracht Frankfurt','Wolfsburgo','Friburgo']},
-  {n:'Ligue 1', espn:'fra.1', t:['PSG','Marsella','Mónaco','Lyon','Lille','Niza','Lens','Rennes']}
+  {n:'Liga Argentina', espn:'arg.1'},
+  {n:'Primera Nacional', espn:'arg.2'},
+  {n:'Brasileirão', espn:'bra.1'},
+  {n:'Liga Uruguaya', espn:'uru.1'},
+  {n:'Premier League', espn:'eng.1'},
+  {n:'LaLiga', espn:'esp.1'},
+  {n:'Serie A', espn:'ita.1'},
+  {n:'Bundesliga', espn:'ger.1'},
+  {n:'Ligue 1', espn:'fra.1'}
 ];
-const JUGADAS = 4; // cuántas fechas ya se jugaron
-const DIAS_FECHA = [0,1,1,2]; // los 4 partidos de cada fecha se reparten en 3 días distintos
-
-// Convierte una fecha en texto "2026-10-24" (sirve para ordenar y comparar)
+const S = {liga:0, vista:'partidos', sub:'torneo', dia:{}, tk:0}; // dia: día elegido en cada liga
+const cache = {};
+const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const color = c => /^#[0-9a-f]{6}$/i.test(c) ? c : '#888888';
 function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
-function azar(s){ return () => (s = (s*1664525 + 1013904223) >>> 0) / 4294967296; }
-
-// Arma el calendario: todos contra todos, una fecha por semana
-function calendario(eq){
-  const n = eq.length, a = [...eq], fechas = [];
-  for(let r=0; r<n-1; r++){
-    const ms = [];
-    for(let i=0; i<n/2; i++){ const h=a[i], v=a[n-1-i]; ms.push(r%2 ? [v,h] : [h,v]); }
-    fechas.push(ms);
-    a.splice(1, 0, a.pop());
-  }
-  return fechas;
-}
-
-// Cada partido: {h: local, v: visitante, g: [golesLocal, golesVisita] o null si no se jugó}
-const DATOS = LIGAS.map((l,i) => {
-  const r = azar(i*977 + 13), horas = ['16:00','18:30','20:00','21:30'];
-  return calendario(l.t).map((ms,k) => ms.map(([h,v],j) => ({
-    h, v, hora: horas[j%4], f: k+1,
-    d: (() => { const x = new Date(); x.setHours(12); x.setDate(x.getDate() + (k-JUGADAS)*7 + 2 + DIAS_FECHA[j%4]); return iso(x); })(),
-    g: k < JUGADAS ? [Math.floor(r()*r()*5), Math.floor(r()*r()*4)] : null
-  })));
-});
-
-/* ========== 2. TABLA DE POSICIONES ==========
-   Se calcula sola a partir de los partidos jugados. */
-function tabla(fechas){
-  const T = {};
-  const eq = n => T[n] = T[n] || {n, pj:0, g:0, e:0, p:0, gf:0, gc:0};
-  fechas.flat().forEach(m => {
-    if(!m.g) return;
-    const [a,b] = m.g, H = eq(m.h), V = eq(m.v);
-    H.pj++; V.pj++; H.gf+=a; H.gc+=b; V.gf+=b; V.gc+=a;
-    if(a>b){H.g++; V.p++} else if(a<b){V.g++; H.p++} else {H.e++; V.e++}
-  });
-  return Object.values(T).map(x => ({...x, dg:x.gf-x.gc, pts:x.g*3+x.e}))
-    .sort((x,y) => y.pts-x.pts || y.dg-x.dg || y.gf-x.gf);
-}
-
-/* ========== 3. PANTALLA ========== */
-const S = {liga:0, vista:'partidos', sub:'torneo', dia:null, diaE:{}, tk:0}; // dia/diaE: día elegido; tk: evita mezclar cargas viejas
-
-// Lista de días que tienen partidos en la liga elegida. Los días vacíos no aparecen,
-// por eso al navegar con las flechas se saltean solos.
-function diasConPartidos(){ return [...new Set(DATOS[S.liga].flat().map(m => m.d))].sort(); }
-
 function diaTexto(dia){
-  const hoy = iso(new Date()), man = new Date(), ayer = new Date();
+  const man = new Date(), ayer = new Date();
   man.setDate(man.getDate()+1); ayer.setDate(ayer.getDate()-1);
-  const etiqueta = dia===hoy ? 'Hoy' : dia===iso(man) ? 'Mañana' : dia===iso(ayer) ? 'Ayer' : '';
+  const etiqueta = dia===iso(new Date()) ? 'Hoy' : dia===iso(man) ? 'Mañana' : dia===iso(ayer) ? 'Ayer' : '';
   const txt = new Date(dia+'T12:00').toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'long'});
   return {etiqueta, txt};
 }
 
-function ir(n){
-  const dias = diasConPartidos();
-  S.dia = dias[Math.min(dias.length-1, Math.max(0, dias.indexOf(S.dia)+n))];
-  render();
+/* ===== Datos: datos/<liga>.json, que mantiene actualizar.py ===== */
+function armar(raw){
+  const j = JSON.parse(raw);
+  j.raw = raw;
+  j.dias = [...new Set(j.partidos.map(p => p.dia))].sort(); // solo días con partidos: los vacíos se saltean
+  return j;
 }
-
-function render(){
-  const tk = ++S.tk, fechas = DATOS[S.liga];
-  document.getElementById('nav').innerHTML = LIGAS.map((l,i) =>
-    `<button class="${i===S.liga?'on':''}" onclick="S.liga=${i};render()">${l.n}</button>`).join('');
-
-  let h = `<div class="tabs">
-    <button class="${S.vista==='partidos'?'on':''}" onclick="S.vista='partidos';render()">Partidos</button>
-    <button class="${S.vista==='tabla'?'on':''}" onclick="S.vista='tabla';render()">Posiciones</button></div>`;
-
-  if(LIGAS[S.liga].espn){
-    document.getElementById('main').innerHTML = h + '<p class="nota">Cargando datos…</p>';
-    cargarEspn(h, tk);
-    return;
-  }
-  if(S.vista === 'partidos'){
-    const dias = diasConPartidos();
-    if(!dias.includes(S.dia)) S.dia = dias.find(d => d >= iso(new Date())) || dias[dias.length-1];
-    const i = dias.indexOf(S.dia), {etiqueta, txt} = diaTexto(S.dia);
-    const delDia = fechas.flat().filter(m => m.d === S.dia);
-    h += `<div class="fecha">
-      <button onclick="ir(-1)" aria-label="Día anterior" ${i===0?'disabled':''}>‹</button>
-      <div><b>${etiqueta || txt}</b><span>${etiqueta ? txt+', ' : ''}fecha ${delDia[0].f}</span></div>
-      <button onclick="ir(1)" aria-label="Día siguiente" ${i===dias.length-1?'disabled':''}>›</button></div>`;
-    h += delDia.map(m => {
-      const gl = m.g && m.g[0] > m.g[1], gv = m.g && m.g[1] > m.g[0];
-      return `<div class="m"><span class="h ${gl?'w':''}">${m.h}</span>
-        <span class="sc ${m.g?'':'next'}">${m.g ? m.g[0]+' - '+m.g[1] : m.hora}</span>
-        <span class="${gv?'w':''}">${m.v}</span></div>`;
-    }).join('');
-  } else {
-    h += htmlTabla(tabla(fechas));
-  }
-  h += `<p class="nota">Datos de ejemplo: los resultados se generan en el código y no son reales.</p>`;
-  document.getElementById('main').innerHTML = h;
-}
-/* ========== 4. DATOS REALES (ESPN) ==========
-   Las ligas con la propiedad "espn" leen datos/<liga>.json, que mantiene actualizado
-   el script actualizar.py (corre solo en GitHub cada 30 minutos). */
-const cache = {};
-const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
 async function datosLiga(slug){
   if(!cache[slug]){
     const r = await fetch(`datos/${slug}.json`, {cache:'no-cache'});
     if(!r.ok) throw new Error(`no se encontró datos/${slug}.json (${r.status})`);
-    const j = await r.json();
-    j.dias = [...new Set(j.partidos.map(p => p.dia))].sort(); // solo días con partidos
-    cache[slug] = j;
+    cache[slug] = armar(await r.text());
   }
   return cache[slug];
 }
 
-function irEspn(n){
+function irDia(n){
   const slug = LIGAS[S.liga].espn, dias = cache[slug].dias;
-  S.diaE[slug] = dias[Math.min(dias.length-1, Math.max(0, dias.indexOf(S.diaE[slug]) + n))];
+  S.dia[slug] = dias[Math.min(dias.length-1, Math.max(0, dias.indexOf(S.dia[slug]) + n))];
   render();
 }
 
+/* ===== Piezas de la pantalla ===== */
 function htmlTabla(filas){
+  const ley = [], vistos = {};
+  filas.forEach(f => { if(f.nota && !vistos[f.nota.d]){ vistos[f.nota.d] = 1; ley.push(f.nota); } });
   return `<table><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th>
     <th class="gf">GF</th><th class="gf">GC</th><th>DG</th><th>Pts</th></tr></thead><tbody>` +
-    filas.map((t,i) => `<tr class="${i<3?'top':''}"><td>${i+1}</td><td>${esc(t.n)}</td><td>${t.pj}</td>
-      <td>${t.g}</td><td>${t.e}</td><td>${t.p}</td><td class="gf">${t.gf}</td><td class="gf">${t.gc}</td>
-      <td>${t.dg>0?'+':''}${t.dg}</td><td>${t.pts}</td></tr>`).join('') + `</tbody></table>`;
+    filas.map((t,i) => `<tr><td${t.nota ? ` style="box-shadow:inset 4px 0 ${color(t.nota.c)}"` : ''}>${i+1}</td>
+      <td>${esc(t.n)}</td><td>${t.pj}</td><td>${t.g}</td><td>${t.e}</td><td>${t.p}</td>
+      <td class="gf">${t.gf}</td><td class="gf">${t.gc}</td><td>${t.dg>0?'+':''}${t.dg}</td><td>${t.pts}</td></tr>`).join('') +
+    `</tbody></table>` +
+    (ley.length ? `<div class="ley">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '');
+}
+
+// Goleadores de un lado del partido: "Nombre 23', 45' (p)"
+function golesDe(p, lado){
+  const por = {};
+  (p.goles || []).filter(g => g.l === lado).forEach(g => {
+    const n = g.n || 'Gol';
+    (por[n] = por[n] || []).push(g.m + (g.t === 'p' ? ' (p)' : g.t === 'e' ? ' (e.c.)' : ''));
+  });
+  return Object.entries(por).map(([n, m]) => `${esc(n)} ${esc(m.join(', '))}`).join('<br>');
 }
 
 function htmlPartido(p){
   const jug = p.estado !== 'pre', gl = jug && +p.gl > +p.gv, gv = jug && +p.gv > +p.gl;
-  const suspendido = p.estado === 'post' && !p.completo;
+  const susp = p.estado === 'post' && !p.completo;
   const centro = !jug ? new Date(p.fecha).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})
-               : suspendido ? esc(p.detalle) : `${p.gl} - ${p.gv}`;
-  return `<div class="m"><span class="h ${gl?'w':''}">${esc(p.h)}</span>
-    <span class="sc ${jug && !suspendido ? '' : 'next'}">${centro}</span>
-    <span class="${gv?'w':''}">${esc(p.v)}</span></div>`;
+               : susp ? esc(p.detalle) : `${p.gl} - ${p.gv}`;
+  const vivo = p.estado === 'in' ? `<small class="vivo">${esc(p.detalle)}</small>` : '';
+  const gH = golesDe(p, 'h'), gV = golesDe(p, 'v');
+  return `<div class="mw"><div class="m"><span class="h ${gl?'w':''}">${esc(p.h)}</span>
+    <span class="sc ${jug && !susp ? '' : 'next'}">${centro}${vivo}</span>
+    <span class="${gv?'w':''}">${esc(p.v)}</span></div>` +
+    (gH || gV ? `<div class="g"><span class="h">${gH}</span><span></span><span>${gV}</span></div>` : '') + `</div>`;
 }
 
-async function cargarEspn(cab, tk){
-  const slug = LIGAS[S.liga].espn, main = document.getElementById('main');
+/* ===== Pantalla ===== */
+function render(){
+  const tk = ++S.tk, slug = LIGAS[S.liga].espn;
+  document.getElementById('nav').innerHTML = LIGAS.map((l,i) =>
+    `<button class="${i===S.liga?'on':''}" onclick="S.liga=${i};render()">${l.n}</button>`).join('');
+  const cab = `<div class="tabs">
+    <button class="${S.vista==='partidos'?'on':''}" onclick="S.vista='partidos';render()">Partidos</button>
+    <button class="${S.vista==='tabla'?'on':''}" onclick="S.vista='tabla';render()">Posiciones</button></div>`;
+  if(!cache[slug]) document.getElementById('main').innerHTML = cab + '<p class="nota">Cargando datos…</p>';
+  cargar(cab, tk, slug);
+}
+
+async function cargar(cab, tk, slug){
   let h = cab;
   try{
     const D = await datosLiga(slug);
@@ -230,12 +176,12 @@ async function cargarEspn(cab, tk){
       const dias = D.dias;
       if(!dias.length){ h += '<p class="nota">Todavía no hay partidos cargados.</p>'; }
       else {
-        if(!dias.includes(S.diaE[slug])) S.diaE[slug] = dias.find(d => d >= iso(new Date())) || dias[dias.length-1];
-        const dia = S.diaE[slug], i = dias.indexOf(dia), {etiqueta, txt} = diaTexto(dia);
+        if(!dias.includes(S.dia[slug])) S.dia[slug] = dias.find(d => d >= iso(new Date())) || dias[dias.length-1];
+        const dia = S.dia[slug], i = dias.indexOf(dia), {etiqueta, txt} = diaTexto(dia);
         h += `<div class="fecha">
-          <button onclick="irEspn(-1)" aria-label="Día anterior" ${i===0?'disabled':''}>‹</button>
+          <button onclick="irDia(-1)" aria-label="Día anterior" ${i===0?'disabled':''}>‹</button>
           <div><b>${etiqueta || txt}</b><span>${etiqueta ? txt : ''}</span></div>
-          <button onclick="irEspn(1)" aria-label="Día siguiente" ${i===dias.length-1?'disabled':''}>›</button></div>`;
+          <button onclick="irDia(1)" aria-label="Día siguiente" ${i===dias.length-1?'disabled':''}>›</button></div>`;
         h += D.partidos.filter(p => p.dia === dia).map(htmlPartido).join('');
       }
     } else {
@@ -244,17 +190,31 @@ async function cargarEspn(cab, tk){
           `<button class="${S.sub===k?'on':''}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
       }
       if(D.anual && S.sub === 'anual'){
-        h += htmlTabla(D.anual) + '<p class="nota">Suma la fase regular del Apertura y del Clausura. Los playoffs no cuentan.</p>';
+        h += htmlTabla(D.anual) + `<p class="nota">Suma la fase regular del Apertura y del Clausura (los playoffs no cuentan).
+          * Los cupos se corren si algún equipo ya clasificó por otra vía (campeones, Copa Argentina). También desciende el último
+          de la tabla de promedios; si es el mismo equipo, baja el anteúltimo de la anual.</p>`;
       } else {
         h += D.tabla.map(g => (g.nombre ? `<p class="nota"><b>${esc(g.nombre)}</b></p>` : '') + htmlTabla(g.filas)).join('');
       }
     }
-    h += `<p class="nota">Datos de ESPN, actualizados el ${new Date(D.actualizado).toLocaleString('es-AR')}.</p>`;
+    h += `<p class="nota">Datos de ESPN. Última novedad: ${new Date(D.actualizado).toLocaleString('es-AR')}.</p>`;
   } catch(err){
     h += `<p class="nota">No se pudieron cargar los datos (${esc(err.message)}). Esto solo funciona con la página publicada en GitHub Pages, no abriendo el archivo con doble click.</p>`;
   }
-  if(tk === S.tk) main.innerHTML = h;
+  if(tk === S.tk) document.getElementById('main').innerHTML = h;
 }
+
+// Cada 60 segundos revisa si hay datos nuevos y, si los hay, redibuja sola
+setInterval(async () => {
+  if(document.hidden) return;
+  const slug = LIGAS[S.liga].espn;
+  try{
+    const r = await fetch(`datos/${slug}.json`, {cache:'no-cache'});
+    if(!r.ok) return;
+    const raw = await r.text();
+    if(raw !== cache[slug]?.raw){ cache[slug] = armar(raw); render(); }
+  } catch(e){}
+}, 60000);
 
 render();
 </script>
