@@ -40,9 +40,32 @@ BASE = 'https://site.api.espn.com/apis/'
 REGLAS = {
     'arg.1': {
         'torneo': [(1, 8, 'Playoffs', '#2fa866')],
-        'anual': [(1, 3, 'Copa Libertadores*', '#2b7bd6'),
-                  (4, 9, 'Copa Sudamericana*', '#e3a21a'),
+        'anual': [(1, 3, 'Copa Libertadores', '#2b7bd6'),
+                  (4, 8, 'Copa Sudamericana', '#e3a21a'),
                   (-1, -1, 'Descenso', '#d64545')],
+    },
+    'arg.2': {
+        'torneo': [(1, 1, 'Final por el primer ascenso', '#2fa866'),
+                   (2, 8, 'Reducido por el segundo ascenso', '#e3a21a')],
+    },
+    'bra.1': {
+        'torneo': [(1, 6, 'Copa Libertadores', '#2b7bd6'),
+                   (7, 12, 'Copa Sudamericana', '#e3a21a'),
+                   (-4, -1, 'Descenso', '#d64545')],
+    },
+    'uru.1': {
+        'anual': [(1, 3, 'Copa Libertadores', '#2b7bd6'),
+                  (4, 6, 'Copa Sudamericana', '#e3a21a')],
+    },
+    'col.1': {
+        'torneo': [(1, 2, 'Copa Libertadores', '#2b7bd6'),
+                   (3, 4, 'Copa Sudamericana', '#e3a21a'),
+                   (-2, -1, 'Descenso', '#d64545')],
+    },
+    'chi.1': {
+        'torneo': [(1, 2, 'Copa Libertadores', '#2b7bd6'),
+                   (3, 5, 'Copa Sudamericana', '#e3a21a'),
+                   (-1, -1, 'Descenso', '#d64545')],
     },
 }
 HEX = re.compile(r'#?[0-9a-fA-F]{6}')
@@ -83,6 +106,16 @@ def goles_de(comp, local, visita):
     return salida
 
 
+def ronda_slug(e):
+    texto = (e.get('season') or {}).get('slug', '')
+    traducciones = {
+        'round-of-64': 'Treintaidosavos de final', 'round-of-32': 'Dieciseisavos de final',
+        'round-of-16': 'Octavos de final', 'quarterfinals': 'Cuartos de final',
+        'semifinals': 'Semifinal', 'final': 'Final',
+    }
+    return traducciones.get(texto, texto.replace('-', ' ').title() if texto else '')
+
+
 def partidos_del_dia(slug, dia):
     j = pedir(f"{BASE}site/v2/sports/soccer/{slug}/scoreboard?dates={dia:%Y%m%d}")
     salida = []
@@ -96,6 +129,7 @@ def partidos_del_dia(slug, dia):
             'id': e.get('id'),
             'dia': dia.isoformat(),
             'fecha': e.get('date'),
+            'ronda': ronda_slug(e),
             'h': local.get('team', {}).get('displayName'),
             'v': visita.get('team', {}).get('displayName'),
             'gl': local.get('score'),
@@ -152,22 +186,22 @@ def tabla(slug):
     return salida
 
 
-def tabla_anual(partidos, slug):
-    """Suma solo la fase regular del Apertura y del Clausura (16 partidos por equipo y torneo).
-    Los playoffs no cuentan: son los partidos que ya superan el 16 de alguno de los dos equipos."""
-    llevan = {}   # (equipo, semestre) -> cuántos partidos lleva
+def tabla_periodo(partidos, desde=None, hasta=None, limite_por_equipo=None, slug=None):
+    """Suma una tabla por fechas. límite_por_equipo excluye playoffs posteriores al torneo regular."""
+    llevan = {}
     filas = {}
     for p in sorted(partidos, key=lambda p: p['fecha'] or ''):
-        if not p['h'] or not p['v']:
-            continue
-        sem = 1 if (p['fecha'] or '') < '2026-07-01' else 2   # Apertura / Clausura
-        kh, kv = (p['h'], sem), (p['v'], sem)
-        llevan[kh] = llevan.get(kh, 0) + 1
-        llevan[kv] = llevan.get(kv, 0) + 1
-        if llevan[kh] > 16 or llevan[kv] > 16:
+        fecha = p['fecha'] or ''
+        if not p['h'] or not p['v'] or (desde and fecha < desde) or (hasta and fecha >= hasta):
             continue
         for n in (p['h'], p['v']):
             filas.setdefault(n, {'n': n, 'pj': 0, 'g': 0, 'e': 0, 'p': 0, 'gf': 0, 'gc': 0})
+        if limite_por_equipo:
+            kh, kv = (p['h'], desde), (p['v'], desde)
+            llevan[kh] = llevan.get(kh, 0) + 1
+            llevan[kv] = llevan.get(kv, 0) + 1
+            if llevan[kh] > limite_por_equipo or llevan[kv] > limite_por_equipo:
+                continue
         if p['estado'] != 'post' or not p['completo'] or p['gl'] in (None, '') or p['gv'] in (None, ''):
             continue
         a, b = int(p['gl']), int(p['gv'])
@@ -181,8 +215,35 @@ def tabla_anual(partidos, slug):
         f['dg'] = f['gf'] - f['gc']
         f['pts'] = f['g'] * 3 + f['e']
     orden = sorted(filas.values(), key=lambda f: (-f['pts'], -f['dg'], -f['gf']))
-    marcar(orden, REGLAS.get(slug, {}).get('anual', []))
+    if slug:
+        marcar(orden, REGLAS.get(slug, {}).get('anual', []))
     return orden
+
+def tablas_por_zonas(partidos, grupos, desde=None, hasta=None):
+    salida = []
+    for grupo in grupos:
+        equipos = {f['n'] for f in grupo.get('filas', [])}
+        filas = tabla_periodo([p for p in partidos if p.get('h') in equipos or p.get('v') in equipos], desde, hasta)
+        marcar(filas, REGLAS.get('arg.2', {}).get('torneo', []))
+        salida.append({'nombre': grupo.get('nombre') or 'Zona', 'filas': filas})
+    return salida
+
+
+def tabla_anual(partidos, slug):
+    if slug == 'arg.1':
+        filas = {}
+        for f in (tabla_periodo(partidos, hasta='2026-07-01T00:00:00Z', limite_por_equipo=16) +
+                  tabla_periodo(partidos, desde='2026-07-01T00:00:00Z', limite_por_equipo=16)):
+            t = filas.setdefault(f['n'], {'n': f['n'], 'pj': 0, 'g': 0, 'e': 0, 'p': 0, 'gf': 0, 'gc': 0})
+            for k in ('pj', 'g', 'e', 'p', 'gf', 'gc'):
+                t[k] += f[k]
+        orden = sorted(filas.values(), key=lambda f: (-(f['g'] * 3 + f['e']), -(f['gf'] - f['gc']), -f['gf']))
+        for f in orden:
+            f['dg'] = f['gf'] - f['gc']
+            f['pts'] = f['g'] * 3 + f['e']
+        marcar(orden, REGLAS.get(slug, {}).get('anual', []))
+        return orden
+    return tabla_periodo(partidos, desde='2026-01-01T00:00:00Z', slug=slug)
 
 
 def hay_actividad(partidos):
@@ -250,7 +311,17 @@ def actualizar(slug, inicio, historial, forzar):
     partidos.sort(key=lambda p: (p['fecha'] or '', p['id'] or ''))
     nuevo = {'partidos': partidos, 'tabla': filas}
     if slug == 'arg.1':
+        nuevo['apertura'] = tabla_periodo(partidos, hasta='2026-07-01T00:00:00Z', limite_por_equipo=16)
+        nuevo['clausura'] = tabla_periodo(partidos, desde='2026-07-01T00:00:00Z', limite_por_equipo=16)
         nuevo['anual'] = tabla_anual(partidos, slug)
+    if slug == 'arg.2':
+        nuevo['apertura'] = tablas_por_zonas(partidos, filas, hasta='2026-07-01T00:00:00Z')
+        nuevo['clausura'] = tablas_por_zonas(partidos, filas, desde='2026-07-01T00:00:00Z')
+    if slug == 'uru.1':
+        nuevo['apertura'] = tabla_periodo(partidos, hasta='2026-05-30T00:00:00Z')
+        nuevo['intermedio'] = tabla_periodo(partidos, desde='2026-05-30T00:00:00Z', hasta='2026-07-20T00:00:00Z')
+        nuevo['clausura'] = tabla_periodo(partidos, desde='2026-07-20T00:00:00Z')
+        nuevo['anual'] = tabla_periodo(partidos, slug=slug)
 
     previo = {k: v for k, v in anterior.items() if k != 'actualizado'}
     if nuevo == previo:
