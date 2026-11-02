@@ -84,6 +84,20 @@ const LIGAS = [
   {n:'Bundesliga', espn:'ger.1'},
   {n:'Ligue 1', espn:'fra.1'}
 ];
+/* Casi en tiempo real: pegá acá la dirección de tu Worker de Cloudflare
+   (por ejemplo 'https://chomiedos.tuusuario.workers.dev'). Si queda vacío,
+   la página usa solo los datos que guarda GitHub. */
+const PROXY = '';
+
+// Marcas de posiciones para las tablas que ESPN no marca: [desde, hasta, texto, color].
+// Los negativos cuentan desde el final (-1 = último). Es la misma lista que tiene actualizar.py.
+const REGLAS = {
+  'arg.1': {
+    torneo: [[1, 8, 'Playoffs', '#2fa866']],
+    anual: [[1, 3, 'Copa Libertadores*', '#2b7bd6'], [4, 9, 'Copa Sudamericana*', '#e3a21a'], [-1, -1, 'Descenso', '#d64545']]
+  }
+};
+
 const S = {liga:0, vista:'partidos', sub:'torneo', dia:{}, tk:0}; // dia: día elegido en cada liga
 const cache = {};
 const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -112,6 +126,113 @@ async function datosLiga(slug){
     cache[slug] = armar(await r.text());
   }
   return cache[slug];
+}
+
+/* ===== En vivo (solo si hay PROXY): lee ESPN a través del Worker, igual que actualizar.py ===== */
+function marcar(filas, reglas){
+  const n = filas.length;
+  filas.forEach((f, i) => {
+    if(f.nota) return;
+    for(const [a, b, d, c] of reglas){
+      if((a > 0 ? a : n + a + 1) <= i + 1 && i + 1 <= (b > 0 ? b : n + b + 1)){ f.nota = {d, c}; break; }
+    }
+  });
+}
+
+function leerEventos(j, dia){
+  return (j.events || []).map(e => {
+    const comp = e.competitions?.[0] || {}, eq = comp.competitors || [], st = e.status?.type || {};
+    const L = eq.find(x => x.homeAway === 'home') || eq[0] || {}, V = eq.find(x => x.homeAway === 'away') || eq[1] || {};
+    const lado = {[L.team?.id]:'h', [V.team?.id]:'v'};
+    const goles = (comp.details || []).filter(d => d.scoringPlay && lado[d.team?.id] && !/shootout/i.test(d.type?.text || ''))
+      .map(d => ({l:lado[d.team.id], n:d.athletesInvolved?.[0]?.displayName || d.athletesInvolved?.[0]?.shortName || '',
+                  m:d.clock?.displayValue || '', t:d.penaltyKick ? 'p' : d.ownGoal ? 'e' : ''}));
+    return {id:e.id, dia, fecha:e.date, h:L.team?.displayName, v:V.team?.displayName, gl:L.score, gv:V.score,
+            estado:st.state, completo:st.completed, detalle:st.shortDetail, goles};
+  });
+}
+
+function leerTabla(j, slug){
+  const grupos = j.children?.length ? j.children : [j];
+  return grupos.map(g => {
+    const filas = (g.standings?.entries || []).map(e => {
+      const s = k => Math.trunc(e.stats?.find(x => x.name === k)?.value || 0);
+      const fila = {n:e.team?.displayName, pj:s('gamesPlayed'), g:s('wins'), e:s('ties'), p:s('losses'),
+                    gf:s('pointsFor'), gc:s('pointsAgainst'), dg:s('pointDifferential'), pts:s('points'), rank:s('rank')};
+      if(e.note?.description){
+        let c = e.note.color || ''; c = c.startsWith('#') ? c : '#' + c;
+        fila.nota = {d:e.note.description, c:color(c)};
+      }
+      return fila;
+    }).sort((a, b) => (a.rank || 99) - (b.rank || 99));
+    marcar(filas, REGLAS[slug]?.torneo || []);
+    return {nombre: grupos.length > 1 ? g.name : '', filas};
+  });
+}
+
+// Suma solo la fase regular del Apertura y del Clausura (16 partidos por equipo y torneo)
+function tablaAnual(partidos, slug){
+  const llevan = {}, filas = {};
+  [...partidos].sort((a, b) => (a.fecha || '').localeCompare(b.fecha || '')).forEach(p => {
+    if(!p.h || !p.v) return;
+    const sem = (p.fecha || '') < '2026-07-01' ? 1 : 2, kh = p.h + '|' + sem, kv = p.v + '|' + sem;
+    llevan[kh] = (llevan[kh] || 0) + 1; llevan[kv] = (llevan[kv] || 0) + 1;
+    if(llevan[kh] > 16 || llevan[kv] > 16) return;   // playoffs: no cuentan
+    for(const n of [p.h, p.v]) filas[n] = filas[n] || {n, pj:0, g:0, e:0, p:0, gf:0, gc:0};
+    if(p.estado !== 'post' || !p.completo || p.gl == null || p.gl === '' || p.gv == null || p.gv === '') return;
+    const a = +p.gl, b = +p.gv, H = filas[p.h], V = filas[p.v];
+    H.pj++; V.pj++; H.gf += a; H.gc += b; V.gf += b; V.gc += a;
+    if(a > b){ H.g++; V.p++; } else if(a < b){ V.g++; H.p++; } else { H.e++; V.e++; }
+  });
+  const orden = Object.values(filas).map(f => ({...f, dg:f.gf - f.gc, pts:f.g * 3 + f.e}))
+    .sort((x, y) => y.pts - x.pts || y.dg - x.dg || y.gf - x.gf);
+  marcar(orden, REGLAS[slug]?.anual || []);
+  return orden;
+}
+
+function hayActividad(ps){   // partido en juego, por empezar (15 min) o terminado hace menos de 3 horas
+  const ahora = Date.now();
+  return ps.some(p => p.estado === 'in' || (Date.parse(p.fecha) >= ahora - 3 * 3600e3 && Date.parse(p.fecha) <= ahora + 15 * 60e3));
+}
+
+function esReciente(dia){   // hoy, ayer y mañana: los días que se piden en vivo
+  return [-1, 0, 1].map(n => { const d = new Date(); d.setDate(d.getDate() + n); return iso(d); }).includes(dia);
+}
+
+const vivo = {};   // respuestas recientes, para no repetir el mismo pedido varias veces seguidas
+async function pedirVivo(clave, ruta, extra, vence, leer){
+  if(!PROXY) return null;
+  const c = vivo[clave];
+  if(c && Date.now() - c.t < vence) return c.v;
+  try{
+    const r = await fetch(`${PROXY}?p=${encodeURIComponent(ruta)}${extra}`);
+    if(!r.ok) return null;
+    const v = leer(await r.json());
+    vivo[clave] = {t:Date.now(), v};
+    return v;
+  } catch(e){ return null; }
+}
+async function vivoPartidos(slug, dia){   // null si falla o viene vacío: se usan los datos de GitHub
+  const ps = await pedirVivo(slug + dia, `site/v2/sports/soccer/${slug}/scoreboard`, `&dates=${dia.replace(/-/g, '')}`, 10000, j => leerEventos(j, dia));
+  return ps && ps.length ? ps : null;
+}
+function vivoTabla(slug){
+  return pedirVivo(slug + 'tabla', `v2/sports/soccer/${slug}/standings`, '', 40000, j => leerTabla(j, slug));
+}
+async function anualEnVivo(D, slug){   // la anual se recalcula con los resultados de hoy y de ayer
+  const dias = [0, -1].map(n => { const d = new Date(); d.setDate(d.getDate() + n); return iso(d); });
+  const res = await Promise.all(dias.map(d => vivoPartidos(slug, d)));
+  if(res.every(r => !r)) return null;
+  let ps = D.partidos.filter(p => !dias.includes(p.dia));
+  dias.forEach((d, i) => { ps = ps.concat(res[i] || D.partidos.filter(p => p.dia === d)); });
+  return tablaAnual(ps, slug);
+}
+
+// Vuelve a dibujar solo: rápido si hay partidos en juego, despacio si no
+let timer;
+function programar(ms){
+  clearTimeout(timer);
+  timer = setTimeout(() => document.hidden ? programar(ms) : render(), ms);
 }
 
 function irDia(n){
@@ -169,7 +290,7 @@ function render(){
 }
 
 async function cargar(cab, tk, slug){
-  let h = cab;
+  let h = cab, activo = false;
   try{
     const D = await datosLiga(slug);
     if(S.vista === 'partidos'){
@@ -182,26 +303,34 @@ async function cargar(cab, tk, slug){
           <button onclick="irDia(-1)" aria-label="Día anterior" ${i===0?'disabled':''}>‹</button>
           <div><b>${etiqueta || txt}</b><span>${etiqueta ? txt : ''}</span></div>
           <button onclick="irDia(1)" aria-label="Día siguiente" ${i===dias.length-1?'disabled':''}>›</button></div>`;
-        h += D.partidos.filter(p => p.dia === dia).map(htmlPartido).join('');
+        const envivo = esReciente(dia) ? await vivoPartidos(slug, dia) : null;
+        h += (envivo || D.partidos.filter(p => p.dia === dia)).map(htmlPartido).join('');
+        activo = hayActividad([...D.partidos, ...(envivo || [])]);
       }
     } else {
+      const tv = await vivoTabla(slug);
+      const anual = D.anual ? (await anualEnVivo(D, slug) || D.anual) : null;
+      activo = hayActividad(D.partidos);
       if(D.anual){
         h += `<div class="sub">` + [['torneo','Torneo actual'],['anual','Tabla anual']].map(([k,t]) =>
           `<button class="${S.sub===k?'on':''}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
       }
       if(D.anual && S.sub === 'anual'){
-        h += htmlTabla(D.anual) + `<p class="nota">Suma la fase regular del Apertura y del Clausura (los playoffs no cuentan).
+        h += htmlTabla(anual) + `<p class="nota">Suma la fase regular del Apertura y del Clausura (los playoffs no cuentan).
           * Los cupos se corren si algún equipo ya clasificó por otra vía (campeones, Copa Argentina). También desciende el último
           de la tabla de promedios; si es el mismo equipo, baja el anteúltimo de la anual.</p>`;
       } else {
-        h += D.tabla.map(g => (g.nombre ? `<p class="nota"><b>${esc(g.nombre)}</b></p>` : '') + htmlTabla(g.filas)).join('');
+        h += (tv || D.tabla).map(g => (g.nombre ? `<p class="nota"><b>${esc(g.nombre)}</b></p>` : '') + htmlTabla(g.filas)).join('');
       }
     }
     h += `<p class="nota">Datos de ESPN. Última novedad: ${new Date(D.actualizado).toLocaleString('es-AR')}.</p>`;
   } catch(err){
     h += `<p class="nota">No se pudieron cargar los datos (${esc(err.message)}). Esto solo funciona con la página publicada en GitHub Pages, no abriendo el archivo con doble click.</p>`;
   }
-  if(tk === S.tk) document.getElementById('main').innerHTML = h;
+  if(tk === S.tk){
+    document.getElementById('main').innerHTML = h;
+    if(PROXY) programar(activo ? 20000 : 60000);
+  }
 }
 
 // Cada 60 segundos revisa si hay datos nuevos y, si los hay, redibuja sola
