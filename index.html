@@ -140,8 +140,10 @@ const PROXY = 'https://chomiedos.ginozuccotti2009.workers.dev';
 const COPAS = ['arg.copa','uru.copa_auf_uruguay','bra.copa_do_brazil','conmebol.libertadores','conmebol.sudamericana'];
 const REGLAS = {
   'arg.1': {
-    torneo: [[1, 8, 'Playoffs', '#2fa866']],
-    anual: [[1, 3, 'Copa Libertadores', '#2b7bd6'], [4, 8, 'Copa Sudamericana', '#e3a21a'], [-1, -1, 'Descenso', '#d64545']]
+    apertura: [[1, 8, 'Playoffs', '#e3a21a']],
+    clausura: [[1, 8, 'Playoffs', '#e3a21a']],
+    anual: [[1, 3, 'Copa Libertadores', '#2b7bd6'], [4, 8, 'Copa Sudamericana', '#e3a21a']],
+    promedios: [[-1, -1, 'Descenso', '#d64545']]
   },
   'arg.2': {
     torneo: [[1, 1, 'Final por el primer ascenso', '#2fa866'], [2, 8, 'Reducido por el segundo ascenso', '#e3a21a']]
@@ -150,7 +152,11 @@ const REGLAS = {
     torneo: [[1, 6, 'Copa Libertadores', '#2b7bd6'], [7, 12, 'Copa Sudamericana', '#e3a21a'], [-4, -1, 'Descenso', '#d64545']]
   },
   'uru.1': {
-    anual: [[1, 3, 'Copa Libertadores', '#2b7bd6'], [4, 6, 'Copa Sudamericana', '#e3a21a']]
+    apertura: [[1, 1, 'Campeón del Apertura', '#2fa866']],
+    intermedio: [[1, 1, 'Campeón del Torneo Intermedio', '#2fa866']],
+    clausura: [[1, 1, 'Campeón del Clausura', '#2fa866']],
+    anual: [[1, 3, 'Copa Libertadores', '#2b7bd6'], [4, 6, 'Copa Sudamericana', '#e3a21a']],
+    promedios: [[-3, -1, 'Descenso', '#d64545']]
   },
   'col.1': {
     torneo: [[1, 2, 'Copa Libertadores', '#2b7bd6'], [3, 4, 'Copa Sudamericana', '#e3a21a'], [-2, -1, 'Descenso', '#d64545']]
@@ -254,13 +260,14 @@ function tablaPeriodo(partidos, desde, hasta, limitePorEquipo = 0){
     .sort((x, y) => y.pts - x.pts || y.dg - x.dg || y.gf - x.gf);
 }
 
-function tablasPorZonas(partidos, tablas, desde, hasta){
+function tablasPorZonas(partidos, tablas, slug, desde, hasta, limitePorEquipo = 0){
   if(!tablas?.length) return [];
   return tablas.map(g => {
     const equipos = new Set(g.filas.map(f => f.n));
-    const filas = tablaPeriodo(partidos.filter(p => equipos.has(p.h) || equipos.has(p.v)), desde, hasta);
-    marcar(filas, REGLAS['arg.2']?.torneo || []);
-    return {nombre:g.nombre || 'Zona', filas};
+    const filas = tablaPeriodo(partidos.filter(p => equipos.has(p.h) && equipos.has(p.v)), desde, hasta, limitePorEquipo);
+    marcar(filas, REGLAS[slug]?.torneo || REGLAS[slug]?.apertura || []);
+    const nombre = slug === 'arg.1' ? String(g.nombre || 'Zona').replace(/^Group /, 'Zona ') : (g.nombre || 'Zona');
+    return {nombre, filas};
   });
 }
 
@@ -317,6 +324,16 @@ async function anualEnVivo(D, slug){   // la anual se recalcula con los resultad
   return tablaAnual(ps, slug);
 }
 
+function tablaPromedios(partidos, slug){
+  const base = tablaPeriodo(partidos, '2026-01-01T00:00:00Z');
+  const filas = base.map(f => {
+    const prom = f.pj ? f.pts / f.pj : 0;
+    return {...f, prom:+prom.toFixed(3)};
+  }).sort((a,b) => b.prom-a.prom || b.pts-a.pts || b.dg-a.dg);
+  marcar(filas, REGLAS[slug]?.promedios || []);
+  return filas;
+}
+
 // Vuelve a dibujar solo: rápido si hay partidos en juego, despacio si no
 let timer;
 function programar(ms){
@@ -343,11 +360,11 @@ function htmlTabla(filas, titulo){
   const th = (sig, t, c = '') => `<th scope="col" class="${c}"><abbr title="${t}">${sig}</abbr></th>`;
   return `<div class="tw"><table><caption class="sr">${esc(titulo)}</caption><thead><tr>
     ${th('#', 'Posición')}<th scope="col">Equipo</th>${th('PJ', 'Partidos jugados')}${th('G', 'Ganados')}${th('E', 'Empatados')}
-    ${th('P', 'Perdidos')}${th('GF', 'Goles a favor', 'gf')}${th('GC', 'Goles en contra', 'gf')}${th('DG', 'Diferencia de gol')}${th('Pts', 'Puntos')}
+    ${th('P', 'Perdidos')}${th('GF', 'Goles a favor', 'gf')}${th('GC', 'Goles en contra', 'gf')}${th('DG', 'Diferencia de gol')}${th('Pts', 'Puntos')}${filas.some(t => t.prom != null) ? th('Prom.', 'Promedio de puntos por partido', 'gf') : ''}
     </tr></thead><tbody>` +
     filas.map((t, i) => `<tr><td${t.nota ? ` style="box-shadow:inset 6px 0 ${color(t.nota.c)}"` : ''}>${i+1}${t.nota ? `<span class="sr"> (${esc(t.nota.d)})</span>` : ''}</td>
       <td>${esc(t.n)}</td><td>${t.pj}</td><td>${t.g}</td><td>${t.e}</td><td>${t.p}</td>
-      <td class="gf">${t.gf}</td><td class="gf">${t.gc}</td><td>${t.dg>0?'+':''}${t.dg}</td><td>${t.pts}</td></tr>`).join('') +
+      <td class="gf">${t.gf}</td><td class="gf">${t.gc}</td><td>${t.dg>0?'+':''}${t.dg}</td><td>${t.pts}</td>${t.prom != null ? `<td>${t.prom.toFixed(3)}</td>` : ''}</tr>`).join('') +
     `</tbody></table></div>` +
     (ley.length ? `<div class="ley">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '');
 }
@@ -397,7 +414,7 @@ function abrirMenu(abrir){
 }
 function elegirLiga(i){
   S.liga = i;
-  S.sub = ['arg.1','arg.2','uru.1'].includes(LIGAS[i].espn) ? 'apertura' : 'torneo';
+  S.sub = ['arg.1','uru.1'].includes(LIGAS[i].espn) ? 'apertura' : 'torneo';
   abrirMenu(false); render();
   document.getElementById('ligaBtn').focus();
 }
@@ -460,37 +477,56 @@ async function cargar(cab, tk, slug){
       const apertura = D.apertura ? tablaPeriodo(D.partidos, '2026-01-01T00:00:00Z', slug === 'uru.1' ? '2026-05-30T00:00:00Z' : '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0) : null;
       const intermedio = D.intermedio ? tablaPeriodo(D.partidos, '2026-05-30T00:00:00Z', '2026-07-20T00:00:00Z') : null;
       const clausura = D.clausura ? tablaPeriodo(D.partidos, '2026-07-20T00:00:00Z') : null;
-      const aperturaZonas = slug === 'arg.2' && D.apertura ? tablasPorZonas(D.partidos, D.tabla, '2026-01-01T00:00:00Z', '2026-07-01T00:00:00Z') : null;
-      const clausuraZonas = slug === 'arg.2' && D.clausura ? tablasPorZonas(D.partidos, D.tabla, '2026-07-01T00:00:00Z') : null;
+      const aperturaZonas = ['arg.1','arg.2'].includes(slug) && D.apertura
+        ? tablasPorZonas(D.partidos, D.tabla, slug, '2026-01-01T00:00:00Z', '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0)
+        : null;
+      const clausuraZonas = ['arg.1','arg.2'].includes(slug) && D.clausura
+        ? tablasPorZonas(D.partidos, D.tabla, slug, '2026-07-01T00:00:00Z', null, slug === 'arg.1' ? 16 : 0)
+        : null;
       const anual = D.anual ? (await anualEnVivo(D, slug) || D.anual) : null;
+      const promedios = ['arg.1','uru.1'].includes(slug) ? tablaPromedios(D.partidos, slug) : null;
+      if(apertura) marcar(apertura, REGLAS[slug]?.apertura || []);
+      if(intermedio) marcar(intermedio, REGLAS[slug]?.intermedio || []);
+      if(clausura) marcar(clausura, REGLAS[slug]?.clausura || []);
+      if(anual) marcar(anual, REGLAS[slug]?.anual || []);
       activo = hayActividad(D.partidos);
-      if(D.apertura || D.intermedio || D.clausura || D.anual){
-        const multiTorneo = ['arg.1','uru.1'].includes(slug);
+      if(slug !== 'arg.2' && (D.apertura || D.intermedio || D.clausura || D.anual)){
         const opciones = [];
-        if(multiTorneo){
+        if(slug === 'arg.1'){
           if(D.apertura) opciones.push(['apertura','Torneo Apertura']);
           if(D.clausura) opciones.push(['clausura','Torneo Clausura']);
-        } else if(slug === 'arg.2'){
+        } else if(slug === 'uru.1'){
           if(D.apertura) opciones.push(['apertura','Torneo Apertura']);
+          if(D.intermedio) opciones.push(['intermedio','Torneo Intermedio']);
           if(D.clausura) opciones.push(['clausura','Torneo Clausura']);
         } else {
           opciones.push(['torneo','Torneo actual']);
           if(D.apertura) opciones.push(['apertura','Tabla del Apertura']);
+          if(D.intermedio) opciones.push(['intermedio','Torneo Intermedio']);
           if(D.clausura) opciones.push(['clausura','Tabla del Clausura']);
         }
-        if(D.intermedio) opciones.push(['intermedio','Torneo Intermedio']);
         if(D.anual) opciones.push(['anual','Tabla Anual']);
+        if(promedios) opciones.push(['promedios','Tabla de promedios']);
         h += `<div class="seg chico" role="group" aria-label="Tipo de tabla">` + opciones.map(([k,t]) =>
           `<button data-k="s-${k}" aria-pressed="${S.sub === k}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
       }
-      if(D.apertura && S.sub === 'apertura'){
-        h += slug === 'arg.2'
+      if(slug === 'arg.2'){
+        h += D.tabla.map(g => {
+          const nombre = String(g.nombre || 'Zona').replace(/^Group /, 'Zona ');
+          marcar(g.filas, REGLAS[slug]?.torneo || []);
+          return htmlTabla(g.filas, nombre);
+        }).join('');
+      } else if(D.apertura && S.sub === 'apertura'){
+        marcar(D.apertura, REGLAS[slug]?.apertura || []);
+        h += ['arg.1','arg.2'].includes(slug)
           ? aperturaZonas.map(g => htmlTabla(g.filas, g.nombre)).join('')
           : htmlTabla(apertura.length ? apertura : D.apertura, 'Torneo Apertura');
       } else if(D.intermedio && S.sub === 'intermedio'){
+        marcar(D.intermedio, REGLAS[slug]?.intermedio || []);
         h += htmlTabla(intermedio.length ? intermedio : D.intermedio, 'Torneo Intermedio');
       } else if(D.clausura && S.sub === 'clausura'){
-        h += slug === 'arg.2'
+        marcar(D.clausura, REGLAS[slug]?.clausura || []);
+        h += ['arg.1','arg.2'].includes(slug)
           ? clausuraZonas.map(g => htmlTabla(g.filas, g.nombre)).join('')
           : htmlTabla(clausura.length ? clausura : D.clausura, 'Torneo Clausura');
       } else if(D.anual && S.sub === 'anual'){
@@ -498,6 +534,8 @@ async function cargar(cab, tk, slug){
           * Los cupos se corren si algún equipo ya clasificó por otra vía (campeones, Copa Argentina). También desciende el último
           de la tabla de promedios; si es el mismo equipo, baja el anteúltimo de la anual.</p>` :
           '<p class="nota">Suma los puntos del Apertura y del Clausura de la temporada.</p>');
+      } else if(S.sub === 'promedios' && promedios){
+        h += '<p class="nota" role="status">La tabla de promedios se está desarrollando y estará disponible más adelante.</p>';
       } else {
         h += (tv || D.tabla).map(g => (g.nombre ? `<p class="nota"><b>${esc(g.nombre)}</b></p>` : '') + htmlTabla(g.filas, g.nombre || 'Posiciones')).join('');
       }

@@ -39,10 +39,13 @@ BASE = 'https://site.api.espn.com/apis/'
 # Los números negativos cuentan desde el final (-1 = último).
 REGLAS = {
     'arg.1': {
-        'torneo': [(1, 8, 'Playoffs', '#2fa866')],
+        'apertura': [(1, 1, 'Ganador del Torneo Apertura', '#2fa866'),
+                     (2, 8, 'Playoffs', '#e3a21a')],
+        'clausura': [(1, 1, 'Ganador del Torneo Clausura', '#2fa866'),
+                     (2, 8, 'Playoffs', '#e3a21a')],
         'anual': [(1, 3, 'Copa Libertadores', '#2b7bd6'),
-                  (4, 8, 'Copa Sudamericana', '#e3a21a'),
-                  (-1, -1, 'Descenso', '#d64545')],
+                  (4, 8, 'Copa Sudamericana', '#e3a21a')],
+        'promedios': [(-1, -1, 'Descenso', '#d64545')],
     },
     'arg.2': {
         'torneo': [(1, 1, 'Final por el primer ascenso', '#2fa866'),
@@ -54,8 +57,12 @@ REGLAS = {
                    (-4, -1, 'Descenso', '#d64545')],
     },
     'uru.1': {
+        'apertura': [(1, 1, 'Campeón del Apertura', '#2fa866')],
+        'intermedio': [(1, 1, 'Campeón del Torneo Intermedio', '#2fa866')],
+        'clausura': [(1, 1, 'Campeón del Clausura', '#2fa866')],
         'anual': [(1, 3, 'Copa Libertadores', '#2b7bd6'),
                   (4, 6, 'Copa Sudamericana', '#e3a21a')],
+        'promedios': [(-3, -1, 'Descenso', '#d64545')],
     },
     'col.1': {
         'torneo': [(1, 2, 'Copa Libertadores', '#2b7bd6'),
@@ -219,13 +226,22 @@ def tabla_periodo(partidos, desde=None, hasta=None, limite_por_equipo=None, slug
         marcar(orden, REGLAS.get(slug, {}).get('anual', []))
     return orden
 
-def tablas_por_zonas(partidos, grupos, desde=None, hasta=None):
+def tablas_por_zonas(partidos, grupos, slug, desde=None, hasta=None, limite_por_equipo=None):
     salida = []
     for grupo in grupos:
         equipos = {f['n'] for f in grupo.get('filas', [])}
-        filas = tabla_periodo([p for p in partidos if p.get('h') in equipos or p.get('v') in equipos], desde, hasta)
-        marcar(filas, REGLAS.get('arg.2', {}).get('torneo', []))
-        salida.append({'nombre': grupo.get('nombre') or 'Zona', 'filas': filas})
+        filas = tabla_periodo(
+            [p for p in partidos if p.get('h') in equipos and p.get('v') in equipos],
+            desde, hasta, limite_por_equipo=limite_por_equipo
+        )
+        reglas = REGLAS.get(slug, {}).get('apertura' if hasta else 'clausura', [])
+        if not reglas:
+            reglas = REGLAS.get(slug, {}).get('torneo', [])
+        marcar(filas, reglas)
+        nombre = grupo.get('nombre') or 'Zona'
+        if slug == 'arg.1':
+            nombre = re.sub(r'^Group ', 'Zona ', nombre)
+        salida.append({'nombre': nombre, 'filas': filas})
     return salida
 
 
@@ -244,6 +260,15 @@ def tabla_anual(partidos, slug):
         marcar(orden, REGLAS.get(slug, {}).get('anual', []))
         return orden
     return tabla_periodo(partidos, desde='2026-01-01T00:00:00Z', slug=slug)
+
+
+def tabla_promedios(partidos, slug):
+    filas = tabla_periodo(partidos, desde='2026-01-01T00:00:00Z')
+    for fila in filas:
+        fila['prom'] = round(fila['pts'] / fila['pj'], 3) if fila['pj'] else 0
+    filas.sort(key=lambda f: (-f['prom'], -f['pts'], -f['dg'], -f['gf']))
+    marcar(filas, REGLAS.get(slug, {}).get('promedios', []))
+    return filas
 
 
 def hay_actividad(partidos):
@@ -311,17 +336,16 @@ def actualizar(slug, inicio, historial, forzar):
     partidos.sort(key=lambda p: (p['fecha'] or '', p['id'] or ''))
     nuevo = {'partidos': partidos, 'tabla': filas}
     if slug == 'arg.1':
-        nuevo['apertura'] = tabla_periodo(partidos, hasta='2026-07-01T00:00:00Z', limite_por_equipo=16)
-        nuevo['clausura'] = tabla_periodo(partidos, desde='2026-07-01T00:00:00Z', limite_por_equipo=16)
+        nuevo['apertura'] = tablas_por_zonas(partidos, filas, slug, hasta='2026-07-01T00:00:00Z', limite_por_equipo=16)
+        nuevo['clausura'] = tablas_por_zonas(partidos, filas, slug, desde='2026-07-01T00:00:00Z', limite_por_equipo=16)
         nuevo['anual'] = tabla_anual(partidos, slug)
-    if slug == 'arg.2':
-        nuevo['apertura'] = tablas_por_zonas(partidos, filas, hasta='2026-07-01T00:00:00Z')
-        nuevo['clausura'] = tablas_por_zonas(partidos, filas, desde='2026-07-01T00:00:00Z')
+        nuevo['promedios'] = tabla_promedios(partidos, slug)
     if slug == 'uru.1':
         nuevo['apertura'] = tabla_periodo(partidos, hasta='2026-05-30T00:00:00Z')
         nuevo['intermedio'] = tabla_periodo(partidos, desde='2026-05-30T00:00:00Z', hasta='2026-07-20T00:00:00Z')
         nuevo['clausura'] = tabla_periodo(partidos, desde='2026-07-20T00:00:00Z')
         nuevo['anual'] = tabla_periodo(partidos, slug=slug)
+        nuevo['promedios'] = tabla_promedios(partidos, slug)
 
     previo = {k: v for k, v in anterior.items() if k != 'actualizado'}
     if nuevo == previo:
