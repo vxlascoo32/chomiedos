@@ -110,7 +110,7 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 
 <script>
 /* Para agregar una liga: sumá una línea acá con su código de ESPN, la sigla
-   que se ve en el menú (cod) y el grupo donde aparece (g). */
+   que se ve en el menú (cod) y el grupo donde aparece (g), y la misma liga en actualizar.py. */
 const LIGAS = [
   {n:'Liga Profesional de Fútbol', espn:'arg.1', cod:'ARG', g:'Argentina'},
   {n:'Primera Nacional', espn:'arg.2', cod:'ARG', g:'Argentina'},
@@ -130,7 +130,9 @@ const LIGAS = [
   {n:'Bundesliga', espn:'ger.1', cod:'ALE', g:'Europa'},
   {n:'Ligue 1', espn:'fra.1', cod:'FRA', g:'Europa'}
 ];
-/* Todos los resultados y posiciones se consultan a través de este Worker. */
+/* Casi en tiempo real: pegá acá la dirección de tu Worker de Cloudflare
+   (por ejemplo 'https://chomiedos.tuusuario.workers.dev'). Si queda vacío,
+   la página usa solo los datos que guarda GitHub. */
 const PROXY = 'https://chomiedos.ginozuccotti2009.workers.dev';
 
 // Marcas de posiciones para las tablas que ESPN no marca: [desde, hasta, texto, color].
@@ -178,14 +180,20 @@ function diaTexto(dia){
   return {etiqueta, txt};
 }
 
-/* ===== Datos: todo se obtiene desde ESPN a través del Worker ===== */
-async function datosLiga(slug, dia = iso(new Date())){
-  const partidos = await vivoPartidos(slug, dia);
-  return {
-    partidos: partidos || [],
-    dias: [dia],
-    tabla: []
-  };
+/* ===== Datos: datos/<liga>.json, que mantiene actualizar.py ===== */
+function armar(raw){
+  const j = JSON.parse(raw);
+  j.raw = raw;
+  j.dias = [...new Set(j.partidos.map(p => p.dia))].sort(); // solo días con partidos: los vacíos se saltean
+  return j;
+}
+async function datosLiga(slug){
+  if(!cache[slug]){
+    const r = await fetch(`datos/${slug}.json`, {cache:'no-cache'});
+    if(!r.ok) throw new Error(`no se encontró datos/${slug}.json (${r.status})`);
+    cache[slug] = armar(await r.text());
+  }
+  return cache[slug];
 }
 
 /* ===== En vivo (solo si hay PROXY): lee ESPN a través del Worker, igual que actualizar.py ===== */
@@ -294,11 +302,11 @@ async function pedirVivo(clave, ruta, extra, vence, leer){
   if(c && Date.now() - c.t < vence) return c.v;
   try{
     const r = await fetch(`${PROXY}?p=${encodeURIComponent(ruta)}${extra}`);
-    if(!r.ok) throw new Error(`Worker respondió ${r.status}`);
+    if(!r.ok) return null;
     const v = leer(await r.json());
     vivo[clave] = {t:Date.now(), v};
     return v;
-  } catch(e){ console.error(`Error consultando ESPN (${ruta}):`, e); return null; }
+  } catch(e){ return null; }
 }
 async function vivoPartidos(slug, dia){   // null si falla o viene vacío: se usan los datos de GitHub
   const ps = await pedirVivo(slug + dia, `site/v2/sports/soccer/${slug}/scoreboard`, `&dates=${dia.replace(/-/g, '')}`, 10000, j => leerEventos(j, dia));
@@ -334,10 +342,8 @@ function programar(ms){
 }
 
 function irDia(n){
-  const slug = LIGAS[S.liga].espn;
-  const base = new Date((S.dia[slug] || iso(new Date())) + 'T12:00:00');
-  base.setDate(base.getDate() + n);
-  S.dia[slug] = iso(base);
+  const slug = LIGAS[S.liga].espn, dias = cache[slug].dias;
+  S.dia[slug] = dias[Math.min(dias.length-1, Math.max(0, dias.indexOf(S.dia[slug]) + n))];
   render();
 }
 function moverInicio(n){
@@ -433,12 +439,11 @@ async function cargar(cab, tk, slug){
       const dia = S.inicioDia, partidos = [];
       await Promise.all(LIGAS.map(async liga => {
         try{
-          const D = await datosLiga(liga.espn, dia);
+          const D = await datosLiga(liga.espn);
           D.partidos.filter(p => p.dia === dia).forEach(p => partidos.push({...p, liga:liga.n, ligaSlug:liga.espn}));
         }catch(e){ /* Una competición sin datos no impide mostrar las demás. */ }
       }));
       partidos.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
-      activo = hayActividad(partidos);
       const hoy = iso(new Date()), man = new Date(dia+'T12:00');
       const etiqueta = dia === hoy ? 'Hoy' : man.toLocaleDateString('es-AR', {weekday:'long'});
       h += `<div class="fecha">
@@ -450,17 +455,19 @@ async function cargar(cab, tk, slug){
     } else {
     const D = await datosLiga(slug);
     if(S.vista === 'partidos'){
-      if(!S.dia[slug]) S.dia[slug] = iso(new Date());
-      const dia = S.dia[slug], {etiqueta, txt} = diaTexto(dia);
-      h += `<div class="fecha">
-        <button data-k="d1" onclick="irDia(-1)" aria-label="Día anterior">‹</button>
-        <div><h3>${etiqueta || txt}</h3><span>${etiqueta ? txt : ''}</span></div>
-        <button data-k="d2" onclick="irDia(1)" aria-label="Día siguiente">›</button></div>`;
-      const envivo = await vivoPartidos(slug, dia);
-      h += envivo?.length
-        ? '<ul class="lista">' + envivo.map(p => htmlPartido(p, COPAS.includes(slug))).join('') + '</ul>'
-        : '<p class="nota" role="status">ESPN no informa partidos para este día.</p>';
-      activo = hayActividad(envivo || []);
+      const dias = D.dias;
+      if(!dias.length){ h += '<p class="nota" role="status">Todavía no hay partidos cargados para esta liga.</p>'; }
+      else {
+        if(!dias.includes(S.dia[slug])) S.dia[slug] = dias.find(d => d >= iso(new Date())) || dias[dias.length-1];
+        const dia = S.dia[slug], i = dias.indexOf(dia), {etiqueta, txt} = diaTexto(dia);
+        h += `<div class="fecha">
+          <button data-k="d1" onclick="irDia(-1)" aria-label="Día anterior con partidos" ${i===0?'disabled':''}>‹</button>
+          <div><h3>${etiqueta || txt}</h3><span>${etiqueta ? txt : ''}</span></div>
+          <button data-k="d2" onclick="irDia(1)" aria-label="Día siguiente con partidos" ${i===dias.length-1?'disabled':''}>›</button></div>`;
+        const envivo = esReciente(dia) ? await vivoPartidos(slug, dia) : null;
+        h += '<ul class="lista">' + (envivo || D.partidos.filter(p => p.dia === dia)).map(p => htmlPartido(p, COPAS.includes(slug))).join('') + '</ul>';
+        activo = hayActividad([...D.partidos, ...(envivo || [])]);
+      }
     } else {
       if(COPAS.includes(slug)){
         h += '<p class="nota" role="status">El formato de cuadro estará disponible más adelante.</p>';
@@ -550,7 +557,17 @@ async function cargar(cab, tk, slug){
   }
 }
 
-// La actualización automática se programa con programar(): consulta el Worker.
+// Cada 60 segundos revisa si hay datos nuevos y, si los hay, redibuja sola
+setInterval(async () => {
+  if(document.hidden) return;
+  const slug = LIGAS[S.liga].espn;
+  try{
+    const r = await fetch(`datos/${slug}.json`, {cache:'no-cache'});
+    if(!r.ok) return;
+    const raw = await r.text();
+    if(raw !== cache[slug]?.raw){ cache[slug] = armar(raw); render(); }
+  } catch(e){}
+}, 60000);
 
 document.getElementById('ligaBtn').addEventListener('click', () =>
   abrirMenu(document.getElementById('ligaBtn').getAttribute('aria-expanded') !== 'true'));
