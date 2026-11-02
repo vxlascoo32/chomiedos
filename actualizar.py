@@ -16,15 +16,22 @@ from urllib.request import Request, urlopen
 # Liga de ESPN -> día en que empezó la temporada (se usa con --historial).
 # Para sumar otra liga, agregá una línea acá (y la misma en index.html).
 LIGAS = {
-    'arg.1': date(2026, 1, 22),   # Liga Argentina
+    'arg.1': date(2026, 1, 22),   # Liga Profesional de Fútbol
     'arg.2': date(2026, 1, 20),   # Primera Nacional
+    'arg.copa': date(2026, 1, 20),  # Copa Argentina
     'bra.1': date(2026, 1, 15),   # Brasileirão
-    'uru.1': date(2026, 1, 15),   # Liga Uruguaya
+    'bra.copa_do_brazil': date(2026, 2, 1),  # Copa de Brasil
+    'uru.1': date(2026, 1, 15),   # Liga AUF Uruguaya
+    'uru.copa_auf_uruguay': date(2026, 1, 20),  # Copa AUF Uruguay
+    'col.1': date(2026, 1, 15),   # Liga BetPlay Dimayor
+    'chi.1': date(2026, 1, 20),   # Liga de Primera
     'eng.1': date(2026, 8, 1),    # Premier League
     'esp.1': date(2026, 8, 1),    # LaLiga
     'ita.1': date(2026, 8, 1),    # Serie A
     'ger.1': date(2026, 8, 1),    # Bundesliga
     'fra.1': date(2026, 8, 1),    # Ligue 1
+    'conmebol.libertadores': date(2026, 2, 1),  # CONMEBOL Libertadores
+    'conmebol.sudamericana': date(2026, 2, 1),  # CONMEBOL Sudamericana
 }
 BASE = 'https://site.api.espn.com/apis/'
 
