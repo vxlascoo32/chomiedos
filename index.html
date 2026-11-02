@@ -6,7 +6,7 @@
 <title>Chomiedos: resultados y posiciones de fútbol</title>
 <meta name="description" content="Resultados, goles y tablas de posiciones de fútbol argentino, brasileño, uruguayo y europeo.">
 <meta name="theme-color" content="#0e6b3d">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%230e6b3d'[%...]
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%230e6b3d'[...]
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -28,15 +28,15 @@ h1{margin:0;font:italic 700 clamp(44px,11vw,68px)/.95 'Barlow Condensed','Arial 
 .hero p{margin:6px 0 0;font-size:18px}
 .wrap{max-width:760px;margin:0 auto;padding:16px 12px 48px}
 .liga-menu{position:relative;margin-bottom:14px}
-.liga-btn{width:100%;min-height:58px;display:flex;align-items:center;gap:12px;background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:14px;padding:8px 16px;font:600 24px 'Barlow Condensed',sans-serif}
+.liga-btn{width:100%;min-height:58px;display:flex;align-items:center;gap:12px;background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:14px;padding:8px 16px;font:600 24px 'B[...]
 .liga-btn:hover{border-color:var(--acc)}
 .cod{display:inline-block;min-width:46px;text-align:center;background:var(--acc);color:var(--onacc);border-radius:7px;padding:2px 6px;font:600 15px Barlow,sans-serif}
 .nom{flex:1}
 .flecha{width:12px;height:12px;margin:-5px 4px 0;border-right:3px solid currentColor;border-bottom:3px solid currentColor;transform:rotate(45deg);transition:transform .2s,margin .2s}
 .liga-btn[aria-expanded=true] .flecha{transform:rotate(-135deg);margin-top:5px}
-.liga-lista{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);max-height:70vh;overflow:auto;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:8px;box-shadow:0 12px 30px rgba(0,0,0,.14)}
+.liga-lista{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);max-height:70vh;overflow:auto;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:8px;box-shado[...]
 .grupo{margin:10px 10px 4px;font:600 15px Barlow,sans-serif;color:var(--mute)}
-.op{display:flex;align-items:center;gap:12px;width:100%;min-height:50px;border:0;border-radius:10px;background:none;color:var(--ink);padding:6px 10px;font:500 19px Barlow,sans-serif;text-align:left;cursor:pointer}
+.op{display:flex;align-items:center;gap:12px;width:100%;min-height:50px;border:0;border-radius:10px;background:none;color:var(--ink);padding:6px 10px;font:500 19px Barlow,sans-serif;text-align:left;cu[...]
 .op:hover,.op.on{background:var(--tint)}
 .op.on{font-weight:600}
 .op.on::after{content:"✓";margin-left:auto;color:var(--acc);font-weight:700}
@@ -94,7 +94,7 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 <body>
 <a class="skip" href="#contenido">Saltar al contenido</a>
 <header class="hero"><div class="hero-in">
-  <svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="29" fill="#fff"/><path d="M32 18l11.5 8.4-4.4 13.6H24.9l-4.4-13.6z" fill="#0e6b3d"/><path d="M32 18l11.5 8.4-4.4 13.6H24.9l-4.4-13.6z" fill="#0e6b3d"/></svg>
+  <svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="29" fill="#fff"/><path d="M32 18l11.5 8.4-4.4 13.6H24.9l-4.4-13.6z" fill="#0e6b3d"/><path d="M32[...]
   <div>
     <h1>Chomiedos</h1>
     <p>Resultados, goles y posiciones en vivo</p>
@@ -406,9 +406,7 @@ async function cargar(cab, tk, slug){
           * Los cupos se corren si algún equipo ya clasificó por otra vía (campeones, Copa Argentina). También desciende el último
           de la tabla de promedios; si es el mismo equipo, baja el anteúltimo de la anual.</p>`;
       } else {
-        const tablas = tv || D.tabla || [];
-        const hayTablas = Array.isArray(tablas) && tablas.some(g => Array.isArray(g?.filas) && g.filas.length);
-        h += hayTablas ? (tablas.map(g => (g.nombre ? `<p class="nota"><b>${esc(g.nombre)}</b></p>` : '') + htmlTabla(g.filas, g.nombre || 'Posiciones')).join('') : '<p class="nota" role="status">Formato de cuadro no disponible</p>';
+        h += (tv || D.tabla).map(g => (g.nombre ? `<p class="nota"><b>${esc(g.nombre)}</b></p>` : '') + htmlTabla(g.filas, g.nombre || 'Posiciones')).join('');
       }
     }
     h += `<p class="nota">Datos de ESPN. Última novedad: ${new Date(D.actualizado).toLocaleString('es-AR')}.</p>`;
