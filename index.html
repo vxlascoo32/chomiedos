@@ -3,91 +3,137 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Chomiedos</title>
+<title>Chomiedos: resultados y posiciones de fútbol</title>
+<meta name="description" content="Resultados, goles y tablas de posiciones de fútbol argentino, brasileño, uruguayo y europeo.">
+<meta name="theme-color" content="#0e6b3d">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%230e6b3d'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='23'%20fill='%23fff'/%3E%3Cpath%20d='M32%2020.5l9.5%206.9-3.6%2011.2H26.1l-3.6-11.2z'%20fill='%230e6b3d'/%3E%3Cpath%20d='M32%2020.5V9.5M41.5%2027.4l10.2-3.3M37.9%2038.6l6.3%208.7M26.1%2038.6l-6.3%208.7M22.5%2027.4l-10.2-3.3'%20stroke='%230e6b3d'%20stroke-width='3'%20stroke-linecap='round'%20fill='none'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#e7efe9;--panel:#fff;--ink:#0f2418;--mute:#5a6f62;--line:#d2e0d6;--acc:#12804a;--onacc:#fff;--hd:#0e6b3d;--live:#d33b3b}
-@media(prefers-color-scheme:dark){:root{--bg:#0b1410;--panel:#13201a;--ink:#e5f1e9;--mute:#8da699;--line:#223529;--acc:#2fcf7a;--onacc:#06220f;--hd:#0b5a33;--live:#ff6b6b}}
+:root{--bg:#e7efe9;--panel:#fff;--ink:#0f2418;--mute:#566a5d;--line:#d2e0d6;--acc:#12804a;--onacc:#fff;--hd:#0e6b3d;--hd2:#0b5a33;--live:#c62828;--tint:#eef6f1}
+@media(prefers-color-scheme:dark){:root{--bg:#0b1410;--panel:#13201a;--ink:#e8f3ec;--mute:#9bb3a5;--line:#243a2d;--acc:#2fcf7a;--onacc:#06220f;--hd:#0b5a33;--hd2:#08452a;--live:#ff7b7b;--tint:#182a21}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 Barlow,system-ui,sans-serif}
-header{background:var(--hd);color:#fff;padding:16px 0 14px;margin-bottom:14px}
-header div{max-width:960px;margin:auto;padding:0 16px}
-h1{margin:0;font:700 36px 'Barlow Condensed',Arial Narrow,sans-serif;letter-spacing:.5px}
-header p{margin:0;color:rgba(255,255,255,.8)}
-.wrap{max-width:960px;margin:auto;padding:0 12px 40px;display:grid;grid-template-columns:190px 1fr;gap:14px;align-items:start}
-nav{display:flex;flex-direction:column;gap:2px}
-nav button{text-align:left;border:0;background:none;color:var(--ink);font:500 16px Barlow,sans-serif;padding:9px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
-nav button:hover{background:var(--line)}
-nav button.on{background:var(--acc);color:var(--onacc)}
-button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-main{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.tabs{display:flex;border-bottom:1px solid var(--line)}
-.tabs button{flex:1;border:0;background:none;color:var(--mute);font:600 20px 'Barlow Condensed',sans-serif;padding:12px;cursor:pointer;border-bottom:3px solid transparent}
-.tabs button.on{color:var(--ink);border-bottom-color:var(--acc)}
-.sub{display:flex;gap:8px;padding:12px 14px 0}
-.sub button{border:1px solid var(--line);background:none;color:var(--ink);font:500 15px Barlow,sans-serif;padding:6px 14px;border-radius:999px;cursor:pointer}
-.sub button.on{background:var(--acc);border-color:var(--acc);color:var(--onacc)}
-.fecha{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.45 Barlow,system-ui,'Segoe UI',sans-serif}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:12px;top:-70px;z-index:30;background:var(--acc);color:var(--onacc);padding:10px 16px;border-radius:8px;font-weight:500}
+.skip:focus{top:12px}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+abbr{text-decoration:none}
+.hero{position:relative;overflow:hidden;color:#fff;background:repeating-linear-gradient(90deg,var(--hd) 0 56px,var(--hd2) 56px 112px)}
+.hero::before{content:"";position:absolute;right:92px;top:0;bottom:0;border-right:3px solid rgba(255,255,255,.2)}
+.hero::after{content:"";position:absolute;right:-8px;top:50%;width:190px;height:190px;margin-top:-95px;border:3px solid rgba(255,255,255,.2);border-radius:50%}
+.hero-in{position:relative;z-index:1;max-width:760px;margin:auto;padding:26px 16px;display:flex;align-items:center;gap:16px}
+.logo{width:68px;height:68px;flex:none;filter:drop-shadow(0 3px 5px rgba(0,0,0,.35))}
+h1{margin:0;font:italic 700 clamp(44px,11vw,68px)/.95 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.5px;text-shadow:0 3px 0 rgba(0,0,0,.25)}
+.hero p{margin:6px 0 0;font-size:18px}
+.wrap{max-width:760px;margin:0 auto;padding:16px 12px 48px}
+.liga-menu{position:relative;margin-bottom:14px}
+.liga-btn{width:100%;min-height:58px;display:flex;align-items:center;gap:12px;background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:14px;padding:8px 16px;font:600 24px 'Barlow Condensed',sans-serif;text-align:left;cursor:pointer}
+.liga-btn:hover{border-color:var(--acc)}
+.cod{display:inline-block;min-width:46px;text-align:center;background:var(--acc);color:var(--onacc);border-radius:7px;padding:2px 6px;font:600 15px Barlow,sans-serif}
+.nom{flex:1}
+.flecha{width:12px;height:12px;margin:-5px 4px 0;border-right:3px solid currentColor;border-bottom:3px solid currentColor;transform:rotate(45deg);transition:transform .2s,margin .2s}
+.liga-btn[aria-expanded=true] .flecha{transform:rotate(-135deg);margin-top:5px}
+.liga-lista{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);max-height:70vh;overflow:auto;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:8px;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+.grupo{margin:10px 10px 4px;font:600 15px Barlow,sans-serif;color:var(--mute)}
+.op{display:flex;align-items:center;gap:12px;width:100%;min-height:50px;border:0;border-radius:10px;background:none;color:var(--ink);padding:6px 10px;font:500 19px Barlow,sans-serif;text-align:left;cursor:pointer}
+.op:hover,.op.on{background:var(--tint)}
+.op.on{font-weight:600}
+.op.on::after{content:"✓";margin-left:auto;color:var(--acc);font-weight:700}
+main{background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07)}
+main:focus{outline:none}
+.seg{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
+.seg button{flex:1;min-height:50px;border:2px solid var(--line);border-radius:12px;background:none;color:var(--ink);font:600 21px 'Barlow Condensed',sans-serif;cursor:pointer}
+.seg button:hover{border-color:var(--acc)}
+.seg button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:var(--onacc)}
+.seg.chico{border:0;padding:12px 12px 0}
+.seg.chico button{min-height:44px;font:500 17px Barlow,sans-serif;border-radius:999px}
+.fecha{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--tint);border-bottom:1px solid var(--line)}
 .fecha div{text-align:center}
-.fecha b{display:block;font:700 24px 'Barlow Condensed',sans-serif}
-.fecha b::first-letter{text-transform:uppercase}
-.fecha span{color:var(--mute);font-size:14px}
-.fecha button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--ink);font-size:22px;cursor:pointer}
-.fecha button:disabled{opacity:.3;cursor:default}
+.fecha h3{margin:0;font:700 30px/1.1 'Barlow Condensed',sans-serif}
+.fecha h3::first-letter{text-transform:uppercase}
+.fecha span{color:var(--mute);font-size:16px}
+.fecha button{width:50px;height:50px;border:2px solid var(--line);border-radius:50%;background:var(--panel);color:var(--ink);font-size:28px;line-height:1;cursor:pointer}
+.fecha button:hover:not(:disabled){border-color:var(--acc)}
+.fecha button:disabled{opacity:.35;cursor:default}
+.lista{list-style:none;margin:0;padding:0}
 .mw{border-bottom:1px solid var(--line)}
 .mw:last-child{border:0}
-.m{display:grid;grid-template-columns:1fr 78px 1fr;align-items:center;gap:8px;padding:13px 14px}
-.m .h,.g .h{text-align:right}
-.sc{text-align:center;font:700 28px 'Barlow Condensed',sans-serif;letter-spacing:1px}
-.sc.next{font-size:17px;color:var(--mute);font-weight:600}
-.vivo{display:block;font:600 12px Barlow,sans-serif;color:var(--live);letter-spacing:0}
-.w{font-weight:500;color:var(--acc)}
-.g{display:grid;grid-template-columns:1fr 78px 1fr;gap:8px;padding:0 14px 12px;font-size:13px;line-height:1.35;color:var(--mute)}
-table{width:100%;border-collapse:collapse;font-size:15px}
-th,td{padding:9px 6px;text-align:center}
-th{color:var(--mute);font-weight:500;font-size:13px;border-bottom:1px solid var(--line)}
+.mw.envivo{background:color-mix(in srgb,var(--live) 9%,transparent);box-shadow:inset 5px 0 var(--live)}
+.m{display:grid;grid-template-columns:1fr 100px 1fr;align-items:center;gap:8px;padding:16px 14px 8px}
+.eq{font-size:19px;font-weight:500;line-height:1.2}
+.h{text-align:right}
+.sc{text-align:center;font:700 38px/1 'Barlow Condensed',sans-serif;letter-spacing:1px}
+.sc.next{font-size:25px;color:var(--mute);font-weight:600}
+.est{display:block;white-space:nowrap;margin-top:5px;font:500 14px Barlow,sans-serif;letter-spacing:0;color:var(--mute)}
+.est.vivo{color:var(--live);font-weight:600}
+.punto{display:inline-block;width:9px;height:9px;margin-right:5px;border-radius:50%;background:var(--live)}
+@media(prefers-reduced-motion:no-preference){.punto{animation:late 1.4s infinite}@keyframes late{50%{opacity:.2}}}
+.w{color:var(--acc);font-weight:700}
+.g{display:grid;grid-template-columns:1fr 100px 1fr;gap:8px;padding:0 14px 14px;font-size:15px;line-height:1.35;color:var(--mute)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:17px}
+th,td{padding:12px 6px;text-align:center}
+th{color:var(--mute);font-weight:500;font-size:14px;border-bottom:2px solid var(--line)}
 td:nth-child(2),th:nth-child(2){text-align:left;width:100%}
-td:last-child{font:700 19px 'Barlow Condensed',sans-serif}
 tbody tr{border-bottom:1px solid var(--line)}
-.ley{display:flex;flex-wrap:wrap;gap:6px 16px;padding:10px 14px;font-size:13px;color:var(--mute)}
-.ley i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
-.nota{padding:12px 14px;color:var(--mute);font-size:13px}
-@media(max-width:700px){
-.wrap{grid-template-columns:1fr}
-nav{flex-direction:row;overflow-x:auto;padding-bottom:4px}
+tbody tr:nth-child(even){background:var(--tint)}
+td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
+.ley{display:flex;flex-wrap:wrap;gap:8px 18px;padding:12px 14px;font-size:15px;color:var(--mute)}
+.ley i{display:inline-block;width:12px;height:12px;margin-right:7px;border-radius:3px}
+.nota{margin:0;padding:12px 14px;color:var(--mute);font-size:15px}
+@media(max-width:560px){
 .gf{display:none}
+.hero::before,.hero::after{display:none}
+.m,.g{grid-template-columns:1fr 92px 1fr}
+.eq{font-size:17px}
+.sc{font-size:34px}
 }
 </style>
 </head>
 <body>
-<header><div>
-  <h1>Chomiedos</h1>
-  <p>Resultados y tablas de posiciones</p>
+<a class="skip" href="#contenido">Saltar al contenido</a>
+<header class="hero"><div class="hero-in">
+  <svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="29" fill="#fff"/><path d="M32 18l11.5 8.4-4.4 13.6H24.9l-4.4-13.6z" fill="#0e6b3d"/><path d="M32 18V5M43.5 26.4l12.3-4M39.1 40l7.6 10.5M24.9 40l-7.6 10.5M20.5 26.4l-12.3-4" stroke="#0e6b3d" stroke-width="3.5" stroke-linecap="round" fill="none"/></svg>
+  <div>
+    <h1>Chomiedos</h1>
+    <p>Resultados, goles y posiciones en vivo</p>
+  </div>
 </div></header>
 <div class="wrap">
-  <nav id="nav" aria-label="Ligas"></nav>
-  <main id="main"></main>
+  <nav class="liga-menu" aria-label="Ligas">
+    <button id="ligaBtn" class="liga-btn" aria-expanded="false" aria-controls="ligaLista"></button>
+    <div id="ligaLista" class="liga-lista" hidden></div>
+  </nav>
+  <main id="contenido" tabindex="-1"></main>
 </div>
 
 <script>
-/* Para agregar una liga: sumá una línea acá con su código de ESPN
-   (y la misma en actualizar.py). */
+/* Para agregar una liga: sumá una línea acá con su código de ESPN, la sigla
+   que se ve en el menú (cod) y el grupo donde aparece (g), y la misma liga en actualizar.py. */
 const LIGAS = [
-  {n:'Liga Argentina', espn:'arg.1'},
-  {n:'Primera Nacional', espn:'arg.2'},
-  {n:'Brasileirão', espn:'bra.1'},
-  {n:'Liga Uruguaya', espn:'uru.1'},
-  {n:'Premier League', espn:'eng.1'},
-  {n:'LaLiga', espn:'esp.1'},
-  {n:'Serie A', espn:'ita.1'},
-  {n:'Bundesliga', espn:'ger.1'},
-  {n:'Ligue 1', espn:'fra.1'}
+  {n:'Liga Profesional de Fútbol', espn:'arg.1', cod:'ARG', g:'Argentina'},
+  {n:'Primera Nacional', espn:'arg.2', cod:'ARG', g:'Argentina'},
+  {n:'Copa Argentina', espn:'arg.copa', cod:'ARG', g:'Argentina'},
+  {n:'Brasileirão', espn:'bra.1', cod:'BRA', g:'Brasil'},
+  {n:'Copa de Brasil', espn:'bra.copa_do_brazil', cod:'BRA', g:'Brasil'},
+  {n:'Liga AUF Uruguaya', espn:'uru.1', cod:'URU', g:'Uruguay'},
+  {n:'Copa AUF Uruguay', espn:'uru.copa_auf_uruguay', cod:'URU', g:'Uruguay'},
+  {n:'Liga BetPlay Dimayor', espn:'col.1', cod:'COL', g:'Colombia'},
+  {n:'Liga de Primera', espn:'chi.1', cod:'CHI', g:'Chile'},
+  {n:'CONMEBOL Libertadores', espn:'conmebol.libertadores', cod:'CONMEBOL', g:'Copas internacionales'},
+  {n:'CONMEBOL Sudamericana', espn:'conmebol.sudamericana', cod:'CONMEBOL', g:'Copas internacionales'},
+
+  {n:'Premier League', espn:'eng.1', cod:'ING', g:'Europa'},
+  {n:'LaLiga', espn:'esp.1', cod:'ESP', g:'Europa'},
+  {n:'Serie A', espn:'ita.1', cod:'ITA', g:'Europa'},
+  {n:'Bundesliga', espn:'ger.1', cod:'ALE', g:'Europa'},
+  {n:'Ligue 1', espn:'fra.1', cod:'FRA', g:'Europa'}
 ];
 /* Casi en tiempo real: pegá acá la dirección de tu Worker de Cloudflare
    (por ejemplo 'https://chomiedos.tuusuario.workers.dev'). Si queda vacío,
    la página usa solo los datos que guarda GitHub. */
-const PROXY = 'https://chomiedos.ginozuccotti2009.workers.dev/';
+const PROXY = 'https://chomiedos.ginozuccotti2009.workers.dev';
 
 // Marcas de posiciones para las tablas que ESPN no marca: [desde, hasta, texto, color].
 // Los negativos cuentan desde el final (-1 = último). Es la misma lista que tiene actualizar.py.
@@ -98,7 +144,7 @@ const REGLAS = {
   }
 };
 
-const S = {liga:0, vista:'partidos', sub:'torneo', dia:{}, tk:0}; // dia: día elegido en cada liga
+const S = {liga:0, vista:'inicio', sub:'torneo', dia:{}, tk:0}; // dia: día elegido en cada liga
 const cache = {};
 const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const color = c => /^#[0-9a-f]{6}$/i.test(c) ? c : '#888888';
@@ -242,15 +288,18 @@ function irDia(n){
 }
 
 /* ===== Piezas de la pantalla ===== */
-function htmlTabla(filas){
+function htmlTabla(filas, titulo){
   const ley = [], vistos = {};
   filas.forEach(f => { if(f.nota && !vistos[f.nota.d]){ vistos[f.nota.d] = 1; ley.push(f.nota); } });
-  return `<table><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th>
-    <th class="gf">GF</th><th class="gf">GC</th><th>DG</th><th>Pts</th></tr></thead><tbody>` +
-    filas.map((t,i) => `<tr><td${t.nota ? ` style="box-shadow:inset 4px 0 ${color(t.nota.c)}"` : ''}>${i+1}</td>
+  const th = (sig, t, c = '') => `<th scope="col" class="${c}"><abbr title="${t}">${sig}</abbr></th>`;
+  return `<div class="tw"><table><caption class="sr">${esc(titulo)}</caption><thead><tr>
+    ${th('#', 'Posición')}<th scope="col">Equipo</th>${th('PJ', 'Partidos jugados')}${th('G', 'Ganados')}${th('E', 'Empatados')}
+    ${th('P', 'Perdidos')}${th('GF', 'Goles a favor', 'gf')}${th('GC', 'Goles en contra', 'gf')}${th('DG', 'Diferencia de gol')}${th('Pts', 'Puntos')}
+    </tr></thead><tbody>` +
+    filas.map((t, i) => `<tr><td${t.nota ? ` style="box-shadow:inset 6px 0 ${color(t.nota.c)}"` : ''}>${i+1}${t.nota ? `<span class="sr"> (${esc(t.nota.d)})</span>` : ''}</td>
       <td>${esc(t.n)}</td><td>${t.pj}</td><td>${t.g}</td><td>${t.e}</td><td>${t.p}</td>
       <td class="gf">${t.gf}</td><td class="gf">${t.gc}</td><td>${t.dg>0?'+':''}${t.dg}</td><td>${t.pts}</td></tr>`).join('') +
-    `</tbody></table>` +
+    `</tbody></table></div>` +
     (ley.length ? `<div class="ley">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '');
 }
 
@@ -266,45 +315,82 @@ function golesDe(p, lado){
 
 function htmlPartido(p){
   const jug = p.estado !== 'pre', gl = jug && +p.gl > +p.gv, gv = jug && +p.gv > +p.gl;
-  const susp = p.estado === 'post' && !p.completo;
-  const centro = !jug ? new Date(p.fecha).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})
-               : susp ? esc(p.detalle) : `${p.gl} - ${p.gv}`;
-  const vivo = p.estado === 'in' ? `<small class="vivo">${esc(p.detalle)}</small>` : '';
+  const enjuego = p.estado === 'in', susp = p.estado === 'post' && !p.completo;
+  const hora = new Date(p.fecha).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', hourCycle:'h23'});   // 21:30, no 9:30 p. m.
+  const centro = susp ? '–' : jug ? `<span class="sr">Resultado: </span>${p.gl} - ${p.gv}` : `<span class="sr">Comienza a las </span>${hora}`;
+  const estado = enjuego ? `<i class="punto"></i>En vivo ${esc(p.detalle)}` : susp ? esc(p.detalle) : jug ? 'Final' : '';
   const gH = golesDe(p, 'h'), gV = golesDe(p, 'v');
-  return `<div class="mw"><div class="m"><span class="h ${gl?'w':''}">${esc(p.h)}</span>
-    <span class="sc ${jug && !susp ? '' : 'next'}">${centro}${vivo}</span>
-    <span class="${gv?'w':''}">${esc(p.v)}</span></div>` +
-    (gH || gV ? `<div class="g"><span class="h">${gH}</span><span></span><span>${gV}</span></div>` : '') + `</div>`;
+  return `<li class="mw ${enjuego ? 'envivo' : ''}"><div class="m"><span class="eq h ${gl?'w':''}">${esc(p.h)}</span>
+    <span class="sc ${jug && !susp ? '' : 'next'}">${centro}${estado ? `<small class="est ${enjuego ? 'vivo' : ''}">${estado}</small>` : ''}</span>
+    <span class="eq ${gv?'w':''}">${esc(p.v)}</span></div>` +
+    (gH || gV ? `<div class="g"><span class="h">${gH}</span><span></span><span>${gV}</span></div>` : '') + `</li>`;
 }
 
 /* ===== Pantalla ===== */
+let menuHecho = -1;
+function menuLigas(){
+  if(menuHecho === S.liga) return;   // no se redibuja el menú en cada refresco
+  menuHecho = S.liga;
+  const l = LIGAS[S.liga];
+  document.getElementById('ligaBtn').innerHTML = `<span class="cod">${l.cod}</span><span class="nom">${esc(l.n)}</span><span class="flecha" aria-hidden="true"></span>`;
+  document.getElementById('ligaBtn').setAttribute('aria-label', `Liga: ${l.n}. Cambiar de liga`);
+  let grupo = '', h = '';
+  LIGAS.forEach((x, i) => {
+    if(x.g !== grupo){ grupo = x.g; h += `<p class="grupo">${esc(grupo)}</p>`; }
+    h += `<button class="op ${i === S.liga ? 'on' : ''}" ${i === S.liga ? 'aria-current="true"' : ''} onclick="elegirLiga(${i})"><span class="cod">${x.cod}</span>${esc(x.n)}</button>`;
+  });
+  document.getElementById('ligaLista').innerHTML = h;
+}
+function abrirMenu(abrir){
+  document.getElementById('ligaBtn').setAttribute('aria-expanded', String(abrir));
+  document.getElementById('ligaLista').hidden = !abrir;
+}
+function elegirLiga(i){
+  S.liga = i; abrirMenu(false); render();
+  document.getElementById('ligaBtn').focus();
+}
+
 function render(){
-  const tk = ++S.tk, slug = LIGAS[S.liga].espn;
-  document.getElementById('nav').innerHTML = LIGAS.map((l,i) =>
-    `<button class="${i===S.liga?'on':''}" onclick="S.liga=${i};render()">${l.n}</button>`).join('');
-  const cab = `<div class="tabs">
-    <button class="${S.vista==='partidos'?'on':''}" onclick="S.vista='partidos';render()">Partidos</button>
-    <button class="${S.vista==='tabla'?'on':''}" onclick="S.vista='tabla';render()">Posiciones</button></div>`;
-  if(!cache[slug]) document.getElementById('main').innerHTML = cab + '<p class="nota">Cargando datos…</p>';
+  const tk = ++S.tk, slug = LIGAS[S.liga].espn, main = document.getElementById('contenido');
+  menuLigas();
+  document.querySelector('.liga-menu').hidden = S.vista === 'inicio';
+  const cab = `<h2 class="sr">${S.vista === 'inicio' ? 'Inicio' : esc(LIGAS[S.liga].n)}</h2><div class="seg" role="group" aria-label="Qué querés ver">
+    <button data-k="v0" aria-pressed="${S.vista === 'inicio'}" onclick="S.vista='inicio';render()">Inicio</button>
+    <button data-k="v1" aria-pressed="${S.vista === 'partidos'}" onclick="S.vista='partidos';render()">Partidos</button>
+    <button data-k="v2" aria-pressed="${S.vista === 'tabla'}" onclick="S.vista='tabla';render()">Posiciones</button></div>`;
+  if(S.vista !== 'inicio' && !cache[slug]){ main.innerHTML = cab + '<p class="nota" role="status">Cargando datos…</p>'; main._h = ''; }
   cargar(cab, tk, slug);
 }
 
 async function cargar(cab, tk, slug){
   let h = cab, activo = false;
   try{
+    if(S.vista === 'inicio'){
+      const hoy = iso(new Date()), partidos = [];
+      await Promise.all(LIGAS.map(async liga => {
+        try{
+          const D = await datosLiga(liga.espn);
+          D.partidos.filter(p => p.dia === hoy).forEach(p => partidos.push({...p, liga:liga.n}));
+        }catch(e){ /* Una competición sin datos no impide mostrar las demás. */ }
+      }));
+      partidos.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+      h += partidos.length ? `<div class="fecha"><div><h3>Hoy</h3><span>${new Date(hoy+'T12:00').toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'long'})}</span></div></div>` +
+        partidos.map(p => `<p class="nota"><b>${esc(p.liga)}</b></p><ul class="lista">${htmlPartido(p)}</ul>`).join('') :
+        '<p class="nota" role="status">Hoy no hay partidos programados.</p>';
+    } else {
     const D = await datosLiga(slug);
     if(S.vista === 'partidos'){
       const dias = D.dias;
-      if(!dias.length){ h += '<p class="nota">Todavía no hay partidos cargados.</p>'; }
+      if(!dias.length){ h += '<p class="nota" role="status">Todavía no hay partidos cargados para esta liga.</p>'; }
       else {
         if(!dias.includes(S.dia[slug])) S.dia[slug] = dias.find(d => d >= iso(new Date())) || dias[dias.length-1];
         const dia = S.dia[slug], i = dias.indexOf(dia), {etiqueta, txt} = diaTexto(dia);
         h += `<div class="fecha">
-          <button onclick="irDia(-1)" aria-label="Día anterior" ${i===0?'disabled':''}>‹</button>
-          <div><b>${etiqueta || txt}</b><span>${etiqueta ? txt : ''}</span></div>
-          <button onclick="irDia(1)" aria-label="Día siguiente" ${i===dias.length-1?'disabled':''}>›</button></div>`;
+          <button data-k="d1" onclick="irDia(-1)" aria-label="Día anterior con partidos" ${i===0?'disabled':''}>‹</button>
+          <div><h3>${etiqueta || txt}</h3><span>${etiqueta ? txt : ''}</span></div>
+          <button data-k="d2" onclick="irDia(1)" aria-label="Día siguiente con partidos" ${i===dias.length-1?'disabled':''}>›</button></div>`;
         const envivo = esReciente(dia) ? await vivoPartidos(slug, dia) : null;
-        h += (envivo || D.partidos.filter(p => p.dia === dia)).map(htmlPartido).join('');
+        h += '<ul class="lista">' + (envivo || D.partidos.filter(p => p.dia === dia)).map(htmlPartido).join('') + '</ul>';
         activo = hayActividad([...D.partidos, ...(envivo || [])]);
       }
     } else {
@@ -312,23 +398,29 @@ async function cargar(cab, tk, slug){
       const anual = D.anual ? (await anualEnVivo(D, slug) || D.anual) : null;
       activo = hayActividad(D.partidos);
       if(D.anual){
-        h += `<div class="sub">` + [['torneo','Torneo actual'],['anual','Tabla anual']].map(([k,t]) =>
-          `<button class="${S.sub===k?'on':''}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
+        h += `<div class="seg chico" role="group" aria-label="Tipo de tabla">` + [['torneo','Torneo actual'],['anual','Tabla anual']].map(([k,t]) =>
+          `<button data-k="s-${k}" aria-pressed="${S.sub === k}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
       }
       if(D.anual && S.sub === 'anual'){
-        h += htmlTabla(anual) + `<p class="nota">Suma la fase regular del Apertura y del Clausura (los playoffs no cuentan).
+        h += htmlTabla(anual, 'Tabla anual') + `<p class="nota">Suma la fase regular del Apertura y del Clausura (los playoffs no cuentan).
           * Los cupos se corren si algún equipo ya clasificó por otra vía (campeones, Copa Argentina). También desciende el último
           de la tabla de promedios; si es el mismo equipo, baja el anteúltimo de la anual.</p>`;
       } else {
-        h += (tv || D.tabla).map(g => (g.nombre ? `<p class="nota"><b>${esc(g.nombre)}</b></p>` : '') + htmlTabla(g.filas)).join('');
+        h += (tv || D.tabla).map(g => (g.nombre ? `<p class="nota"><b>${esc(g.nombre)}</b></p>` : '') + htmlTabla(g.filas, g.nombre || 'Posiciones')).join('');
       }
     }
     h += `<p class="nota">Datos de ESPN. Última novedad: ${new Date(D.actualizado).toLocaleString('es-AR')}.</p>`;
+    }
   } catch(err){
-    h += `<p class="nota">No se pudieron cargar los datos (${esc(err.message)}). Esto solo funciona con la página publicada en GitHub Pages, no abriendo el archivo con doble click.</p>`;
+    h += `<p class="nota" role="status">No se pudieron cargar los datos (${esc(err.message)}). Esto solo funciona con la página publicada en GitHub Pages, no abriendo el archivo con doble click.</p>`;
   }
   if(tk === S.tk){
-    document.getElementById('main').innerHTML = h;
+    const main = document.getElementById('contenido');
+    if(main._h !== h){   // si no cambió nada, no se toca la pantalla: así no se pierde el foco ni parpadea
+      const foco = document.activeElement?.dataset?.k;
+      main.innerHTML = h; main._h = h;
+      if(foco) document.querySelector?.(`[data-k="${foco}"]`)?.focus();
+    }
     if(PROXY) programar(activo ? 20000 : 60000);
   }
 }
@@ -344,6 +436,13 @@ setInterval(async () => {
     if(raw !== cache[slug]?.raw){ cache[slug] = armar(raw); render(); }
   } catch(e){}
 }, 60000);
+
+document.getElementById('ligaBtn').addEventListener('click', () =>
+  abrirMenu(document.getElementById('ligaBtn').getAttribute('aria-expanded') !== 'true'));
+document.addEventListener('click', e => { if(!e.target.closest('.liga-menu')) abrirMenu(false); });
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape'){ abrirMenu(false); document.getElementById('ligaBtn').focus(); }
+});
 
 render();
 </script>
