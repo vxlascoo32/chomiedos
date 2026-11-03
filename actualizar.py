@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from urllib.request import Request, urlopen
 
@@ -132,7 +133,8 @@ def partidos_del_dia(slug, dia):
         local = next((c for c in eq if c.get('homeAway') == 'home'), eq[0] if eq else {})
         visita = next((c for c in eq if c.get('homeAway') == 'away'), eq[1] if len(eq) > 1 else {})
         st = (e.get('status') or {}).get('type', {})
-        salida.append({
+        pen_l, pen_v = local.get('shootoutScore'), visita.get('shootoutScore')
+        partido = {
             'id': e.get('id'),
             'dia': dia.isoformat(),
             'fecha': e.get('date'),
@@ -145,7 +147,10 @@ def partidos_del_dia(slug, dia):
             'completo': st.get('completed'),
             'detalle': st.get('shortDetail'),
             'goles': goles_de(comp, local, visita),
-        })
+        }
+        if pen_l is not None and pen_v is not None:
+            partido['pl'], partido['pv'] = pen_l, pen_v
+        salida.append(partido)
     return salida
 
 
@@ -271,6 +276,142 @@ def tabla_promedios(partidos, slug):
     return filas
 
 
+# ===== Liga uruguaya: Apertura, Intermedio (dos zonas), Clausura y Tabla Anual =====
+# Cada torneo tiene su ventana de fechas (en UTC, mismo formato que ESPN). Adentro de cada ventana cada
+# cruce cuenta una sola vez: así no entran las finales ni los desempates, y el Intermedio solo cuenta
+# los partidos dentro de cada zona. La misma lógica está en index.html (si cambiás una, cambiá la otra).
+URU_VENTANAS = {
+    'apertura': ('2026-01-01T00:00Z', '2026-05-13T00:00Z'),     # 15 fechas, hasta el 11 de mayo
+    'intermedio': ('2026-05-13T00:00Z', '2026-08-06T12:00Z'),   # del 15 de mayo al 5 de agosto (final incluida)
+    'clausura': ('2026-08-06T12:00Z', None),                    # desde el 7 de agosto
+}
+URU_NOMBRES = {
+    'penarol': 'Peñarol', 'cerro_largo': 'Cerro Largo', 'racing': 'Racing', 'liverpool': 'Liverpool',
+    'central_espanol': 'Central Español', 'cerro': 'Cerro', 'defensor': 'Defensor Sp.', 'boston_river': 'Boston River',
+    'wanderers': 'Wanderers', 'nacional': 'Nacional', 'maldonado': 'Deportivo Maldonado', 'city_torque': 'City Torque',
+    'juventud': 'Juventud', 'albion': 'Albion', 'progreso': 'Progreso', 'danubio': 'Danubio',
+}
+URU_CLAVES = [(k, re.compile(r)) for k, r in [
+    ('cerro_largo', r'cerro largo'), ('central_espanol', r'central espanol'), ('cerro', r'\bcerro\b'),
+    ('penarol', r'penarol'), ('nacional', r'nacional'), ('defensor', r'defensor'), ('danubio', r'danubio'),
+    ('wanderers', r'wanderers'), ('liverpool', r'liverpool'), ('racing', r'racing'), ('boston_river', r'boston'),
+    ('city_torque', r'torque'), ('maldonado', r'maldonado'), ('juventud', r'juventud'),
+    ('albion', r'albion'), ('progreso', r'progreso'),
+]]
+URU_GRUPOS = {
+    'Grupo A': ['penarol', 'cerro_largo', 'racing', 'liverpool', 'central_espanol', 'cerro', 'defensor', 'boston_river'],
+    'Grupo B': ['wanderers', 'nacional', 'maldonado', 'city_torque', 'juventud', 'albion', 'progreso', 'danubio'],
+}
+# Puntos de menos por decisión de la Federación (la anual lo descuenta una sola vez).
+URU_AJUSTES = {
+    'intermedio': {'cerro': (-1, 'Decisión de la Federación')},
+    'anual': {'cerro': (-1, 'Decisión de la Federación')},
+}
+
+
+def clave_uru(nombre):
+    t = unicodedata.normalize('NFD', nombre or '')
+    t = ''.join(c for c in t if unicodedata.category(c) != 'Mn').lower()
+    return next((k for k, r in URU_CLAVES if r.search(t)), t)
+
+
+def grupo_uru(k):
+    return next((g for g, ks in URU_GRUPOS.items() if k in ks), None)
+
+
+def terminado(p):
+    return (p['estado'] == 'post' and p['completo'] and p['h'] and p['v']
+            and p['gl'] not in (None, '') and p['gv'] not in (None, ''))
+
+
+def forma_uru(partidos):
+    """Últimos 5 resultados de cada equipo en la liga (V, E o D), del más viejo al más nuevo."""
+    por = {}
+    for p in sorted((p for p in partidos if terminado(p)), key=lambda p: p['fecha'] or ''):
+        a, b = int(p['gl']), int(p['gv'])
+        for nombre, gf, gc in ((p['h'], a, b), (p['v'], b, a)):
+            por.setdefault(clave_uru(nombre), []).append('V' if gf > gc else 'D' if gf < gc else 'E')
+    return {k: v[-5:] for k, v in por.items()}
+
+
+def tabla_uru(partidos, torneo, ajustar=True):
+    desde, hasta = URU_VENTANAS[torneo]
+    filas = {k: {'k': k, 'n': n, 'pj': 0, 'g': 0, 'e': 0, 'p': 0, 'gf': 0, 'gc': 0} for k, n in URU_NOMBRES.items()}
+    vistos = set()
+    for p in sorted(partidos, key=lambda p: p['fecha'] or ''):
+        f = p['fecha'] or ''
+        if not p['h'] or not p['v'] or f < desde or (hasta and f >= hasta):
+            continue
+        kh, kv = clave_uru(p['h']), clave_uru(p['v'])
+        if kh == kv:
+            continue
+        if torneo == 'intermedio' and (grupo_uru(kh) is None or grupo_uru(kh) != grupo_uru(kv)):
+            continue
+        if p['estado'] == 'post' and not p['completo']:
+            continue   # suspendido o postergado: cuenta cuando se juegue
+        par = tuple(sorted((kh, kv)))
+        if par in vistos:
+            continue   # un solo partido por cruce en cada torneo
+        vistos.add(par)
+        H = filas.setdefault(kh, {'k': kh, 'n': p['h'], 'pj': 0, 'g': 0, 'e': 0, 'p': 0, 'gf': 0, 'gc': 0})
+        V = filas.setdefault(kv, {'k': kv, 'n': p['v'], 'pj': 0, 'g': 0, 'e': 0, 'p': 0, 'gf': 0, 'gc': 0})
+        if not terminado(p):
+            continue
+        a, b = int(p['gl']), int(p['gv'])
+        H['pj'] += 1; V['pj'] += 1; H['gf'] += a; H['gc'] += b; V['gf'] += b; V['gc'] += a
+        if a > b: H['g'] += 1; V['p'] += 1
+        elif a < b: V['g'] += 1; H['p'] += 1
+        else: H['e'] += 1; V['e'] += 1
+    forma = forma_uru(partidos)
+    for f in filas.values():
+        aj = URU_AJUSTES.get(torneo, {}).get(f['k']) if ajustar else None
+        f['dg'] = f['gf'] - f['gc']
+        f['pts'] = f['g'] * 3 + f['e'] + (aj[0] if aj else 0)
+        if aj:
+            f['aj'] = {'p': aj[0], 'm': aj[1]}
+        f['ult'] = forma.get(f['k'], [])
+    return sorted(filas.values(), key=lambda f: (-f['pts'], -f['dg'], -f['gf'], f['n']))
+
+
+def marcar_campeon(filas, nombre):
+    if filas and filas[0]['pj'] > 0:
+        completo = all(f['pj'] >= 15 for f in filas)
+        filas[0]['nota'] = {'d': ('Campeón del ' if completo else 'Líder del ') + nombre, 'c': '#2fa866'}
+
+
+def anual_uru(partidos):
+    total = {}
+    for torneo in ('apertura', 'intermedio', 'clausura'):
+        for f in tabla_uru(partidos, torneo, ajustar=False):
+            t = total.setdefault(f['k'], {'k': f['k'], 'n': f['n'], 'pj': 0, 'g': 0, 'e': 0, 'p': 0, 'gf': 0, 'gc': 0, 'ult': f['ult']})
+            for c in ('pj', 'g', 'e', 'p', 'gf', 'gc'):
+                t[c] += f[c]
+    for t in total.values():
+        aj = URU_AJUSTES['anual'].get(t['k'])
+        t['dg'] = t['gf'] - t['gc']
+        t['pts'] = t['g'] * 3 + t['e'] + (aj[0] if aj else 0)
+        if aj:
+            t['aj'] = {'p': aj[0], 'm': aj[1]}
+    orden = sorted(total.values(), key=lambda f: (-f['pts'], -f['dg'], -f['gf'], f['n']))
+    marcar(orden, REGLAS['uru.1']['anual'])
+    return orden
+
+
+def datos_uru(partidos):
+    apertura, clausura = tabla_uru(partidos, 'apertura'), tabla_uru(partidos, 'clausura')
+    marcar_campeon(apertura, 'Apertura')
+    marcar_campeon(clausura, 'Clausura')
+    filas = tabla_uru(partidos, 'intermedio')
+    grupos = []
+    for nombre, ks in URU_GRUPOS.items():
+        fs = [f for f in filas if f['k'] in ks]
+        if fs and fs[0]['pj'] > 0:
+            fs[0]['nota'] = {'d': 'Final', 'c': '#1aa3e8'}
+        grupos.append({'nombre': nombre, 'filas': fs})
+    return {'apertura': apertura, 'intermedio': grupos, 'clausura': clausura, 'anual': anual_uru(partidos)}
+
+
+
 def hay_actividad(partidos):
     """True si hay un partido en juego, por empezar (15 min) o que terminó hace menos de 3 horas."""
     ahora = datetime.now(timezone.utc)
@@ -334,6 +475,10 @@ def actualizar(slug, inicio, historial, forzar):
         filas = anterior.get('tabla', [])
 
     partidos.sort(key=lambda p: (p['fecha'] or '', p['id'] or ''))
+    unicos = {}
+    for p in partidos:   # si un id aparece dos veces (partido postergado), queda el de fecha más nueva
+        unicos[p['id'] or f"sin-id-{len(unicos)}"] = p
+    partidos = list(unicos.values())
     nuevo = {'partidos': partidos, 'tabla': filas}
     if slug == 'arg.1':
         nuevo['apertura'] = tablas_por_zonas(partidos, filas, slug, hasta='2026-07-01T00:00:00Z', limite_por_equipo=16)
@@ -341,11 +486,7 @@ def actualizar(slug, inicio, historial, forzar):
         nuevo['anual'] = tabla_anual(partidos, slug)
         nuevo['promedios'] = tabla_promedios(partidos, slug)
     if slug == 'uru.1':
-        nuevo['apertura'] = tabla_periodo(partidos, hasta='2026-05-30T00:00:00Z')
-        nuevo['intermedio'] = tabla_periodo(partidos, desde='2026-05-30T00:00:00Z', hasta='2026-07-20T00:00:00Z')
-        nuevo['clausura'] = tabla_periodo(partidos, desde='2026-07-20T00:00:00Z')
-        nuevo['anual'] = tabla_periodo(partidos, slug=slug)
-        nuevo['promedios'] = tabla_promedios(partidos, slug)
+        nuevo.update(datos_uru(partidos))
 
     previo = {k: v for k, v in anterior.items() if k != 'actualizado'}
     if nuevo == previo:

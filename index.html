@@ -82,6 +82,25 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 .ley{display:flex;flex-wrap:wrap;gap:8px 18px;padding:12px 14px;font-size:15px;color:var(--mute)}
 .ley i{display:inline-block;width:12px;height:12px;margin-right:7px;border-radius:3px}
 .nota{margin:0;padding:12px 14px;color:var(--mute);font-size:15px}
+/* Intermedio uruguayo: una tarjeta por zona, al estilo Promiedos */
+.zona{margin:14px 12px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.zona h3{margin:0;padding:12px 14px;font:700 24px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.5px}
+.zona .tw{border-top:1px solid var(--line)}
+.gt{font-size:15px}
+.gt th,.gt td{padding:7px 4px;text-align:center;white-space:nowrap}
+.gt th{font-size:13px}
+.gt td:nth-child(2),.gt th:nth-child(2){text-align:left;width:auto;white-space:normal;min-width:92px;padding-left:8px}
+.gt td:last-child{font:inherit;color:inherit}
+.gt td.pt{font-weight:700}
+.gt .pos{display:inline-block;min-width:24px;line-height:24px;border-radius:4px;font-weight:700}
+.gt .pos.fin{background:#1aa3e8;color:#fff}
+.gt td.ult{padding-right:8px}
+.fm{display:inline-block;width:19px;height:19px;line-height:19px;margin:0 1.5px;border-radius:4px;font:700 12px 'Barlow Condensed',sans-serif;color:#fff;text-align:center}
+.fm.V{background:#5b9f45}.fm.E{background:#f1b60b;color:#2a2200}.fm.D{background:#e0463c}
+.zpie{display:flex;justify-content:space-between;gap:10px;padding:9px 14px;border-top:1px solid var(--line);font-size:14px;color:var(--mute)}
+.zpie i{display:inline-block;width:10px;height:10px;margin-right:7px;border-radius:50%;background:#1aa3e8}
+.zpie b{color:#e8890c;font-weight:700}
+@media(max-width:560px){.gt{font-size:14px}.fm{width:17px;height:17px;line-height:17px;font-size:11px;margin:0 1px}}
 @media(max-width:560px){
 .gf{display:none}
 .hero::before,.hero::after{display:none}
@@ -184,6 +203,7 @@ function diaTexto(dia){
 function armar(raw){
   const j = JSON.parse(raw);
   j.raw = raw;
+  j.partidos = [...new Map(j.partidos.map((p, i) => [p.id || 'sin-id-' + i, p])).values()];   // si un id está dos veces, queda el último
   j.dias = [...new Set(j.partidos.map(p => p.dia))].sort(); // solo días con partidos: los vacíos se saltean
   return j;
 }
@@ -218,7 +238,8 @@ function leerEventos(j, dia){
     const rondaESPN = e.season?.slug || '';
     const rondas = {'round-of-64':'Treintaidosavos de final','round-of-32':'Dieciseisavos de final','round-of-16':'Octavos de final','quarterfinals':'Cuartos de final','semifinals':'Semifinal','final':'Final'};
     return {id:e.id, dia, fecha:e.date, ronda:rondas[rondaESPN] || rondaESPN.replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase()), h:L.team?.displayName, v:V.team?.displayName, gl:L.score, gv:V.score,
-            estado:st.state, completo:st.completed, detalle:st.shortDetail, goles};
+            estado:st.state, completo:st.completed, detalle:st.shortDetail, goles,
+            ...(L.shootoutScore != null && V.shootoutScore != null ? {pl:L.shootoutScore, pv:V.shootoutScore} : {})};
   });
 }
 
@@ -284,6 +305,159 @@ function tablaAnual(partidos, slug){
     .sort((x,y) => y.pts-x.pts || y.dg-x.dg || y.gf-x.gf);
   marcar(orden, REGLAS[slug]?.anual || []);
   return orden;
+}
+
+/* ===== Liga uruguaya: Apertura, Intermedio (dos zonas), Clausura y Tabla Anual =====
+   Cada torneo tiene su ventana de fechas (UTC, mismo formato que ESPN). Adentro de cada una, cada cruce cuenta
+   una sola vez: así no entran las finales ni los desempates, y el Intermedio solo cuenta los partidos de cada zona.
+   Es la misma lógica que tiene actualizar.py: si cambiás una, cambiá la otra. */
+const URU = {
+  ventanas: {
+    apertura:   ['2026-01-01T00:00Z', '2026-05-13T00:00Z'],   // 15 fechas, hasta el 11 de mayo
+    intermedio: ['2026-05-13T00:00Z', '2026-08-06T12:00Z'],   // del 15 de mayo al 5 de agosto (final incluida)
+    clausura:   ['2026-08-06T12:00Z', null]                   // desde el 7 de agosto
+  },
+  nombres: {penarol:'Peñarol', cerro_largo:'Cerro Largo', racing:'Racing', liverpool:'Liverpool', central_espanol:'Central Español',
+    cerro:'Cerro', defensor:'Defensor Sp.', boston_river:'Boston River', wanderers:'Wanderers', nacional:'Nacional',
+    maldonado:'Deportivo Maldonado', city_torque:'City Torque', juventud:'Juventud', albion:'Albion', progreso:'Progreso', danubio:'Danubio'},
+  claves: [['cerro_largo', /cerro largo/], ['central_espanol', /central espanol/], ['cerro', /\bcerro\b/], ['penarol', /penarol/],
+    ['nacional', /nacional/], ['defensor', /defensor/], ['danubio', /danubio/], ['wanderers', /wanderers/], ['liverpool', /liverpool/],
+    ['racing', /racing/], ['boston_river', /boston/], ['city_torque', /torque/], ['maldonado', /maldonado/], ['juventud', /juventud/],
+    ['albion', /albion/], ['progreso', /progreso/]],
+  grupos: {
+    'Grupo A': ['penarol', 'cerro_largo', 'racing', 'liverpool', 'central_espanol', 'cerro', 'defensor', 'boston_river'],
+    'Grupo B': ['wanderers', 'nacional', 'maldonado', 'city_torque', 'juventud', 'albion', 'progreso', 'danubio']
+  },
+  // Puntos de menos por decisión de la Federación (la anual lo descuenta una sola vez)
+  ajustes: {
+    intermedio: {cerro: [-1, 'Decisión de la Federación']},
+    anual: {cerro: [-1, 'Decisión de la Federación']}
+  }
+};
+function claveUru(nombre){
+  const t = String(nombre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const c = URU.claves.find(([k, re]) => re.test(t));
+  return c ? c[0] : t;
+}
+const grupoUru = k => Object.keys(URU.grupos).find(g => URU.grupos[g].includes(k)) || null;
+const terminado = p => p.estado === 'post' && p.completo && p.h && p.v && p.gl != null && p.gl !== '' && p.gv != null && p.gv !== '';
+const porFecha = (a, b) => (a.fecha || '').localeCompare(b.fecha || '');
+
+function formaUru(partidos){   // últimos 5 resultados de cada equipo en la liga, del más viejo al más nuevo
+  const por = {};
+  partidos.filter(terminado).sort(porFecha).forEach(p => {
+    const a = +p.gl, b = +p.gv;
+    [[p.h, a, b], [p.v, b, a]].forEach(([n, gf, gc]) => (por[claveUru(n)] = por[claveUru(n)] || []).push(gf > gc ? 'V' : gf < gc ? 'D' : 'E'));
+  });
+  Object.keys(por).forEach(k => por[k] = por[k].slice(-5));
+  return por;
+}
+
+function tablaUru(partidos, torneo, ajustar = true){
+  const [desde, hasta] = URU.ventanas[torneo];
+  const nueva = (k, n) => ({k, n, pj:0, g:0, e:0, p:0, gf:0, gc:0});
+  const filas = {}, vistos = new Set();
+  Object.keys(URU.nombres).forEach(k => filas[k] = nueva(k, URU.nombres[k]));
+  [...partidos].sort(porFecha).forEach(p => {
+    const f = p.fecha || '';
+    if(!p.h || !p.v || f < desde || (hasta && f >= hasta)) return;
+    const kh = claveUru(p.h), kv = claveUru(p.v);
+    if(kh === kv) return;
+    if(torneo === 'intermedio' && (!grupoUru(kh) || grupoUru(kh) !== grupoUru(kv))) return;
+    if(p.estado === 'post' && !p.completo) return;               // suspendido o postergado: cuenta cuando se juegue
+    const par = [kh, kv].sort().join('|');
+    if(vistos.has(par)) return;                                   // un solo partido por cruce en cada torneo
+    vistos.add(par);
+    const H = filas[kh] = filas[kh] || nueva(kh, p.h), V = filas[kv] = filas[kv] || nueva(kv, p.v);
+    if(!terminado(p)) return;
+    const a = +p.gl, b = +p.gv;
+    H.pj++; V.pj++; H.gf += a; H.gc += b; V.gf += b; V.gc += a;
+    if(a > b){ H.g++; V.p++; } else if(a < b){ V.g++; H.p++; } else { H.e++; V.e++; }
+  });
+  const forma = formaUru(partidos);
+  return Object.values(filas).map(f => {
+    const aj = ajustar ? URU.ajustes[torneo]?.[f.k] : null;
+    return {...f, dg:f.gf - f.gc, pts:f.g * 3 + f.e + (aj ? aj[0] : 0), aj:aj ? {p:aj[0], m:aj[1]} : undefined, ult:forma[f.k] || []};
+  }).sort((x, y) => y.pts - x.pts || y.dg - x.dg || y.gf - x.gf || x.n.localeCompare(y.n));
+}
+
+function marcarCampeon(filas, nombre){
+  if(filas.length && filas[0].pj > 0){
+    const completo = filas.every(f => f.pj >= 15);
+    filas[0].nota = {d:(completo ? 'Campeón del ' : 'Líder del ') + nombre, c:'#2fa866'};
+  }
+}
+
+function gruposIntermedio(ps){
+  const filas = tablaUru(ps, 'intermedio');
+  return Object.entries(URU.grupos).map(([nombre, ks]) => {
+    const fs = filas.filter(f => ks.includes(f.k));
+    if(fs.length && fs[0].pj > 0) fs[0].nota = {d:'Final', c:'#1aa3e8'};
+    return {nombre, filas:fs};
+  });
+}
+
+function anualUru(ps){
+  const total = {};
+  ['apertura', 'intermedio', 'clausura'].forEach(t => tablaUru(ps, t, false).forEach(f => {
+    const x = total[f.k] = total[f.k] || {k:f.k, n:f.n, pj:0, g:0, e:0, p:0, gf:0, gc:0, ult:f.ult};
+    ['pj', 'g', 'e', 'p', 'gf', 'gc'].forEach(c => x[c] += f[c]);
+  }));
+  const filas = Object.values(total).map(f => {
+    const aj = URU.ajustes.anual[f.k];
+    return {...f, dg:f.gf - f.gc, pts:f.g * 3 + f.e + (aj ? aj[0] : 0), aj:aj ? {p:aj[0], m:aj[1]} : undefined};
+  }).sort((x, y) => y.pts - x.pts || y.dg - x.dg || y.gf - x.gf || x.n.localeCompare(y.n));
+  marcar(filas, REGLAS['uru.1'].anual);
+  return filas;
+}
+
+// Una tarjeta por zona: # · Equipos · PTS · J · Gol · +/- · G · E · P · Últimas
+function htmlZona(g){
+  const th = (sig, t) => `<th scope="col"><abbr title="${t}">${sig}</abbr></th>`;
+  const nombres = {V:'Victoria', E:'Empate', D:'Derrota'};
+  const ajustes = g.filas.filter(f => f.aj);
+  return `<section class="zona" aria-label="${esc(g.nombre)}"><h3>${esc(g.nombre)}</h3><div class="tw"><table class="gt">
+    <caption class="sr">${esc(g.nombre)} del Torneo Intermedio</caption><thead><tr>
+    ${th('#', 'Posición')}<th scope="col">Equipos</th>${th('PTS', 'Puntos')}${th('J', 'Partidos jugados')}${th('Gol', 'Goles a favor : en contra')}
+    ${th('+/-', 'Diferencia de gol')}${th('G', 'Ganados')}${th('E', 'Empatados')}${th('P', 'Perdidos')}${th('Últimas', 'Últimos 5 resultados, el más reciente a la derecha')}
+    </tr></thead><tbody>` +
+    g.filas.map((f, i) => `<tr><td><span class="pos ${f.nota ? 'fin' : ''}">${i + 1}</span>${f.nota ? `<span class="sr"> (${esc(f.nota.d)})</span>` : ''}</td>
+      <td>${esc(f.n)}</td><td class="pt">${f.pts}</td><td>${f.pj}</td><td>${f.gf}:${f.gc}</td><td>${f.dg}</td><td>${f.g}</td><td>${f.e}</td><td>${f.p}</td>
+      <td class="ult">${f.ult.map(r => `<span class="fm ${r}" title="${nombres[r]}">${r}</span>`).join('')}</td></tr>`).join('') +
+    `</tbody></table></div><div class="zpie"><span><i></i>Final</span></div>` +
+    ajustes.map(f => `<div class="zpie"><span>${esc(f.n)}</span><span><b>${f.aj.p}</b> (${esc(f.aj.m)})</span></div>`).join('') + `</section>`;
+}
+
+async function vistaUru(D){
+  const EV = await partidosEnVivo(D, 'uru.1'), ps = EV.ps;
+  const opciones = [['apertura', 'Torneo Apertura'], ['intermedio', 'Torneo Intermedio'], ['clausura', 'Torneo Clausura'],
+    ['anual', 'Tabla Anual'], ['promedios', 'Tabla de promedios']];
+  if(!opciones.some(o => o[0] === S.sub)) S.sub = 'apertura';
+  let h = `<div class="seg chico" role="group" aria-label="Tipo de tabla">` + opciones.map(([k, t]) =>
+    `<button data-k="s-${k}" aria-pressed="${S.sub === k}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
+  if(S.sub === 'apertura'){
+    const f = tablaUru(ps, 'apertura'); marcarCampeon(f, 'Apertura');
+    h += htmlTabla(f, 'Torneo Apertura') + '<p class="nota">15 fechas, todos contra todos.</p>';
+  } else if(S.sub === 'intermedio'){
+    const grupos = gruposIntermedio(ps);
+    h += grupos.map(htmlZona).join('');
+    const lideres = grupos.map(g => g.filas[0]).filter(f => f && f.pj > 0).map(f => f.k);
+    if(lideres.length === 2){   // la final la juegan los ganadores de cada zona
+      const par = [...lideres].sort().join('|'), [d, hs] = URU.ventanas.intermedio;
+      const fin = ps.filter(p => p.fecha >= d && p.fecha < hs && [claveUru(p.h), claveUru(p.v)].sort().join('|') === par).sort(porFecha).pop();
+      if(fin) h += `<p class="nota"><b>Final del Torneo Intermedio</b></p><ul class="lista">${htmlPartido(fin)}</ul>`;
+    }
+    h += '<p class="nota">7 fechas: cada equipo juega contra los otros siete de su zona. Los ganadores de cada zona juegan la final.</p>';
+  } else if(S.sub === 'clausura'){
+    const f = tablaUru(ps, 'clausura'); marcarCampeon(f, 'Clausura');
+    h += htmlTabla(f, 'Torneo Clausura') + '<p class="nota">15 fechas, todos contra todos. Las finales y los desempates no suman.</p>';
+  } else if(S.sub === 'anual'){
+    const aj = Object.keys(URU.ajustes.anual).map(k => `${URU.nombres[k]} ${URU.ajustes.anual[k][0]} (${URU.ajustes.anual[k][1].toLowerCase()})`).join('; ');
+    h += htmlTabla(anualUru(ps), 'Tabla Anual') + `<p class="nota">Suma Apertura, Intermedio y Clausura. Las finales no cuentan.${aj ? ' Puntos de menos: ' + aj + '.' : ''}</p>`;
+  } else {
+    h += '<p class="nota" role="status">La tabla de promedios se está desarrollando y estará disponible más adelante.</p>';
+  }
+  return {h, ps};
 }
 
 function hayActividad(ps){   // partido en juego, por empezar (15 min) o terminado hace menos de 3 horas
@@ -392,7 +566,7 @@ function htmlPartido(p, mostrarRonda = false){
   const enjuego = p.estado === 'in', susp = p.estado === 'post' && !p.completo;
   const hora = new Date(p.fecha).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', hourCycle:'h23'});   // 21:30, no 9:30 p. m.
   const centro = susp ? '–' : jug ? `<span class="sr">Resultado: </span>${p.gl} - ${p.gv}` : `<span class="sr">Comienza a las </span>${hora}`;
-  const estado = enjuego ? `<i class="punto"></i>En vivo ${esc(p.detalle)}` : susp ? esc(p.detalle) : jug ? 'Final' : '';
+  const estado = enjuego ? `<i class="punto"></i>En vivo ${esc(p.detalle)}` : susp ? esc(p.detalle) : jug ? 'Final' + (p.pl != null && p.pv != null ? ` · penales ${esc(p.pl)}-${esc(p.pv)}` : '') : '';
   const ronda = mostrarRonda && p.ronda ? `<small class="est">${esc(p.ronda)}</small>` : '';
   const gH = golesDe(p, 'h'), gV = golesDe(p, 'v');
   return `<li class="mw ${enjuego ? 'envivo' : ''}"><div class="m"><span class="eq h ${gl?'w':''}">${esc(p.h)}</span>
@@ -482,6 +656,9 @@ async function cargar(cab, tk, slug){
       if(COPAS.includes(slug)){
         h += '<p class="nota" role="status">El formato de cuadro estará disponible más adelante.</p>';
         activo = hayActividad(D.partidos);
+      } else if(slug === 'uru.1'){
+        const U = await vistaUru(D);
+        h += U.h; activo = hayActividad(U.ps);
       } else {
       const tv = await vivoTabla(slug);
       const EV = await partidosEnVivo(D, slug), PS = EV.ps;
