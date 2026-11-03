@@ -296,17 +296,19 @@ function esReciente(dia){   // hoy, ayer y mañana: los días que se piden en vi
 }
 
 const vivo = {};   // respuestas recientes, para no repetir el mismo pedido varias veces seguidas
+const vivoEstado = {ok:0, fallo:0, ultimo:''};   // para saber si el Worker está respondiendo
 async function pedirVivo(clave, ruta, extra, vence, leer){
   if(!PROXY) return null;
   const c = vivo[clave];
   if(c && Date.now() - c.t < vence) return c.v;
   try{
     const r = await fetch(`${PROXY}?p=${encodeURIComponent(ruta)}${extra}`);
-    if(!r.ok) return null;
+    if(!r.ok){ vivoEstado.fallo++; vivoEstado.ultimo = 'HTTP ' + r.status; console.warn('Worker:', r.status, ruta); return null; }
     const v = leer(await r.json());
     vivo[clave] = {t:Date.now(), v};
+    vivoEstado.ok++;
     return v;
-  } catch(e){ return null; }
+  } catch(e){ vivoEstado.fallo++; vivoEstado.ultimo = String(e.message || e); console.warn('Worker:', e); return null; }
 }
 async function vivoPartidos(slug, dia){   // null si falla o viene vacío: se usan los datos de GitHub
   const ps = await pedirVivo(slug + dia, `site/v2/sports/soccer/${slug}/scoreboard`, `&dates=${dia.replace(/-/g, '')}`, 10000, j => leerEventos(j, dia));
@@ -315,13 +317,19 @@ async function vivoPartidos(slug, dia){   // null si falla o viene vacío: se us
 function vivoTabla(slug){
   return pedirVivo(slug + 'tabla', `v2/sports/soccer/${slug}/standings`, '', 40000, j => leerTabla(j, slug));
 }
-async function anualEnVivo(D, slug){   // la anual se recalcula con los resultados de hoy y de ayer
-  const dias = [0, -1].map(n => { const d = new Date(); d.setDate(d.getDate() + n); return iso(d); });
+// Partidos de la liga: los de GitHub, pero con ayer, hoy y mañana reemplazados por lo que dice el Worker.
+// Así tablas, inicio y partidos usan la misma fuente en vivo. Si el Worker falla, quedan los datos de GitHub.
+async function partidosEnVivo(D, slug){
+  const dias = [-1, 0, 1].map(n => { const d = new Date(); d.setDate(d.getDate() + n); return iso(d); });
   const res = await Promise.all(dias.map(d => vivoPartidos(slug, d)));
-  if(res.every(r => !r)) return null;
+  if(res.every(r => !r)) return {ps:D.partidos, vivo:false};
   let ps = D.partidos.filter(p => !dias.includes(p.dia));
   dias.forEach((d, i) => { ps = ps.concat(res[i] || D.partidos.filter(p => p.dia === d)); });
-  return tablaAnual(ps, slug);
+  return {ps, vivo:true};
+}
+async function anualEnVivo(D, slug){
+  const r = await partidosEnVivo(D, slug);
+  return r.vivo ? tablaAnual(r.ps, slug) : null;
 }
 
 function tablaPromedios(partidos, slug){
@@ -440,7 +448,9 @@ async function cargar(cab, tk, slug){
       await Promise.all(LIGAS.map(async liga => {
         try{
           const D = await datosLiga(liga.espn);
-          D.partidos.filter(p => p.dia === dia).forEach(p => partidos.push({...p, liga:liga.n, ligaSlug:liga.espn}));
+          let del = D.partidos.filter(p => p.dia === dia);
+          if(del.length && esReciente(dia)) del = await vivoPartidos(liga.espn, dia) || del;
+          del.forEach(p => partidos.push({...p, liga:liga.n, ligaSlug:liga.espn}));
         }catch(e){ /* Una competición sin datos no impide mostrar las demás. */ }
       }));
       partidos.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
@@ -474,22 +484,23 @@ async function cargar(cab, tk, slug){
         activo = hayActividad(D.partidos);
       } else {
       const tv = await vivoTabla(slug);
-      const apertura = D.apertura ? tablaPeriodo(D.partidos, '2026-01-01T00:00:00Z', slug === 'uru.1' ? '2026-05-30T00:00:00Z' : '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0) : null;
-      const intermedio = D.intermedio ? tablaPeriodo(D.partidos, '2026-05-30T00:00:00Z', '2026-07-20T00:00:00Z') : null;
-      const clausura = D.clausura ? tablaPeriodo(D.partidos, '2026-07-20T00:00:00Z') : null;
+      const EV = await partidosEnVivo(D, slug), PS = EV.ps;
+      const apertura = D.apertura ? tablaPeriodo(PS, '2026-01-01T00:00:00Z', slug === 'uru.1' ? '2026-05-30T00:00:00Z' : '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0) : null;
+      const intermedio = D.intermedio ? tablaPeriodo(PS, '2026-05-30T00:00:00Z', '2026-07-20T00:00:00Z') : null;
+      const clausura = D.clausura ? tablaPeriodo(PS, '2026-07-20T00:00:00Z') : null;
       const aperturaZonas = ['arg.1','arg.2'].includes(slug) && D.apertura
-        ? tablasPorZonas(D.partidos, D.tabla, slug, '2026-01-01T00:00:00Z', '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0)
+        ? tablasPorZonas(PS, D.tabla, slug, '2026-01-01T00:00:00Z', '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0)
         : null;
       const clausuraZonas = ['arg.1','arg.2'].includes(slug) && D.clausura
-        ? tablasPorZonas(D.partidos, D.tabla, slug, '2026-07-01T00:00:00Z', null, slug === 'arg.1' ? 16 : 0)
+        ? tablasPorZonas(PS, D.tabla, slug, '2026-07-01T00:00:00Z', null, slug === 'arg.1' ? 16 : 0)
         : null;
-      const anual = D.anual ? (await anualEnVivo(D, slug) || D.anual) : null;
-      const promedios = ['arg.1','uru.1'].includes(slug) ? tablaPromedios(D.partidos, slug) : null;
+      const anual = D.anual ? (EV.vivo ? tablaAnual(PS, slug) : D.anual) : null;
+      const promedios = ['arg.1','uru.1'].includes(slug) ? tablaPromedios(PS, slug) : null;
       if(apertura) marcar(apertura, REGLAS[slug]?.apertura || []);
       if(intermedio) marcar(intermedio, REGLAS[slug]?.intermedio || []);
       if(clausura) marcar(clausura, REGLAS[slug]?.clausura || []);
       if(anual) marcar(anual, REGLAS[slug]?.anual || []);
-      activo = hayActividad(D.partidos);
+      activo = hayActividad(PS);
       if(slug !== 'arg.2' && (D.apertura || D.intermedio || D.clausura || D.anual)){
         const opciones = [];
         if(slug === 'arg.1'){
@@ -541,7 +552,7 @@ async function cargar(cab, tk, slug){
       }
       }
     }
-    h += `<p class="nota">Datos de ESPN. Última novedad: ${new Date(D.actualizado).toLocaleString('es-AR')}.</p>`;
+    h += `<p class="nota">Datos de ESPN. Última novedad: ${new Date(D.actualizado).toLocaleString('es-AR')}.${!PROXY ? '' : vivoEstado.ok ? ' En vivo: activo.' : vivoEstado.fallo ? ` En vivo: sin conexión con el Worker (${esc(vivoEstado.ultimo)}), se usan los datos de GitHub.` : ''}</p>`;
     }
   } catch(err){
     h += `<p class="nota" role="status">No se pudieron cargar los datos (${esc(err.message)}). Esto solo funciona con la página publicada en GitHub Pages, no abriendo el archivo con doble click.</p>`;
