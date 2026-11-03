@@ -131,6 +131,8 @@ def anotar_escudo(escudos, equipo):
     if escudos is None or not equipo:
         return
     url = equipo.get('logo') or next((l.get('href') for l in equipo.get('logos', []) if l.get('href')), None)
+    if not url and equipo.get('id'):   # si ESPN no manda el logo, se arma con el id del equipo
+        url = f"https://a.espncdn.com/i/teamlogos/soccer/500/{equipo['id']}.png"
     if url and equipo.get('displayName'):
         escudos[equipo['displayName']] = url
 
@@ -316,10 +318,11 @@ URU_GRUPOS = {
     'Grupo A': ['penarol', 'cerro_largo', 'racing', 'liverpool', 'central_espanol', 'cerro', 'defensor', 'boston_river'],
     'Grupo B': ['wanderers', 'nacional', 'maldonado', 'city_torque', 'juventud', 'albion', 'progreso', 'danubio'],
 }
-# Puntos de menos por decisión de la Federación (la anual lo descuenta una sola vez).
+# Puntos de menos por decisión de la Federación (cada uno se descuenta una sola vez en la anual).
 URU_AJUSTES = {
     'intermedio': {'cerro': (-1, 'Decisión de la Federación')},
-    'anual': {'cerro': (-1, 'Decisión de la Federación')},
+    'clausura': {'penarol': (-1, 'Decisión de la Federación')},
+    'anual': {'cerro': (-1, 'Decisión de la Federación'), 'penarol': (-1, 'Decisión de la Federación')},
 }
 
 

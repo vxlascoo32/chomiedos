@@ -66,7 +66,7 @@ main:focus{outline:none}
 .eq{display:flex;align-items:center;gap:8px}
 .eq.h{justify-content:flex-end}
 .esc{width:24px;height:24px;object-fit:contain;flex:none}
-.esc.vacio{border-radius:50%;background:var(--line);opacity:.6}
+.esc.ini{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;font:700 11px 'Barlow Condensed',sans-serif;letter-spacing:.3px}
 .gt .esc{width:20px;height:20px}
 .gt td:nth-child(2) .nom{display:flex;align-items:center;gap:8px}
 .sc{text-align:center;font:700 38px/1 'Barlow Condensed',sans-serif;letter-spacing:1px}
@@ -207,7 +207,8 @@ function diaTexto(dia){
 /* ===== Datos: datos/<liga>.json, que mantiene actualizar.py ===== */
 const ESCUDOS = {};   // liga -> {nombre del equipo: URL del escudo (de ESPN)}
 function regEscudo(slug, equipo){
-  const n = equipo?.displayName, u = equipo?.logo || equipo?.logos?.find(l => l.href)?.href;
+  const n = equipo?.displayName;
+  const u = equipo?.logo || equipo?.logos?.find(l => l.href)?.href || (equipo?.id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${equipo.id}.png` : '');
   if(!n || !u || !/^https:\/\//.test(u)) return;
   const m = ESCUDOS[slug] = ESCUDOS[slug] || {};
   m[n] = u;
@@ -215,7 +216,11 @@ function regEscudo(slug, equipo){
 }
 function escudo(slug, nombre){
   const m = ESCUDOS[slug] || {}, u = m[nombre] || (slug === 'uru.1' ? m['@' + claveUru(nombre)] : '');
-  return u ? `<img class="esc" src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="esc vacio" aria-hidden="true"></span>`;
+  const ini = String(nombre || '?').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\(.*?\)/g, '').split(/\s+/).filter(Boolean)
+    .map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
+  let hue = 0; for(const c of String(nombre)) hue = (hue * 31 + c.charCodeAt(0)) % 360;
+  const sin = `<span class="esc ini" style="background:hsl(${hue} 40% 36%)" aria-hidden="true">${esc(ini)}</span>`;
+  return u ? `<img class="esc" src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-fb="${esc(sin)}" onerror="this.outerHTML=this.dataset.fb">` : sin;
 }
 
 function armar(raw, slug){
@@ -354,10 +359,11 @@ const URU = {
     'Grupo A': ['penarol', 'cerro_largo', 'racing', 'liverpool', 'central_espanol', 'cerro', 'defensor', 'boston_river'],
     'Grupo B': ['wanderers', 'nacional', 'maldonado', 'city_torque', 'juventud', 'albion', 'progreso', 'danubio']
   },
-  // Puntos de menos por decisión de la Federación (la anual lo descuenta una sola vez)
+  // Puntos de menos por decisión de la Federación (cada uno se descuenta una sola vez en la anual)
   ajustes: {
     intermedio: {cerro: [-1, 'Decisión de la Federación']},
-    anual: {cerro: [-1, 'Decisión de la Federación']}
+    clausura: {penarol: [-1, 'Decisión de la Federación']},
+    anual: {cerro: [-1, 'Decisión de la Federación'], penarol: [-1, 'Decisión de la Federación']}
   }
 };
 function claveUru(nombre){
