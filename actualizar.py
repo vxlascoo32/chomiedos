@@ -45,12 +45,14 @@ REGLAS = {
         'clausura': [(1, 1, 'Ganador del Torneo Clausura', '#2fa866'),
                      (2, 8, 'Playoffs', '#e3a21a')],
         'anual': [(1, 3, 'Copa Libertadores', '#2b7bd6'),
-                  (4, 8, 'Copa Sudamericana', '#e3a21a')],
+                  (4, 8, 'Copa Sudamericana', '#e3a21a'),
+                  (-1, -1, 'Descenso', '#d64545')],
         'promedios': [(-1, -1, 'Descenso', '#d64545')],
     },
     'arg.2': {
         'torneo': [(1, 1, 'Final por el primer ascenso', '#2fa866'),
-                   (2, 8, 'Reducido por el segundo ascenso', '#e3a21a')],
+                   (2, 8, 'Reducido por el segundo ascenso', '#e3a21a'),
+                   (-2, -1, 'Descenso', '#d64545')],
     },
     'bra.1': {
         'torneo': [(1, 6, 'Copa Libertadores', '#2b7bd6'),
@@ -124,7 +126,16 @@ def ronda_slug(e):
     return traducciones.get(texto, texto.replace('-', ' ').title() if texto else '')
 
 
-def partidos_del_dia(slug, dia):
+def anotar_escudo(escudos, equipo):
+    """Guarda el escudo del equipo (nombre -> URL de la imagen de ESPN) para que la página lo muestre."""
+    if escudos is None or not equipo:
+        return
+    url = equipo.get('logo') or next((l.get('href') for l in equipo.get('logos', []) if l.get('href')), None)
+    if url and equipo.get('displayName'):
+        escudos[equipo['displayName']] = url
+
+
+def partidos_del_dia(slug, dia, escudos=None):
     j = pedir(f"{BASE}site/v2/sports/soccer/{slug}/scoreboard?dates={dia:%Y%m%d}")
     salida = []
     for e in j.get('events', []):
@@ -132,6 +143,8 @@ def partidos_del_dia(slug, dia):
         eq = comp.get('competitors', [])
         local = next((c for c in eq if c.get('homeAway') == 'home'), eq[0] if eq else {})
         visita = next((c for c in eq if c.get('homeAway') == 'away'), eq[1] if len(eq) > 1 else {})
+        anotar_escudo(escudos, local.get('team'))
+        anotar_escudo(escudos, visita.get('team'))
         st = (e.get('status') or {}).get('type', {})
         pen_l, pen_v = local.get('shootoutScore'), visita.get('shootoutScore')
         partido = {
@@ -168,13 +181,14 @@ def marcar(filas, reglas):
                 break
 
 
-def tabla(slug):
+def tabla(slug, escudos=None):
     j = pedir(f"{BASE}v2/sports/soccer/{slug}/standings")
     grupos = j['children'] if j.get('children') else [j]
     salida = []
     for g in grupos:
         filas = []
         for e in g.get('standings', {}).get('entries', []):
+            anotar_escudo(escudos, e.get('team'))
             def s(clave, e=e):
                 for x in e.get('stats', []):
                     if x.get('name') == clave:
@@ -434,6 +448,7 @@ def actualizar(slug, inicio, historial, forzar):
         with open(archivo, encoding='utf-8') as f:
             anterior = json.load(f)
     partidos = anterior.get('partidos', [])
+    escudos = dict(anterior.get('escudos', {}))
 
     ahora = datetime.now(timezone.utc)
     revision_completa = historial or forzar or not anterior or ahora.minute < 10   # una vez por hora
@@ -455,7 +470,7 @@ def actualizar(slug, inicio, historial, forzar):
     while dia <= hasta:
         dias += 1
         try:
-            nuevos = partidos_del_dia(slug, dia)
+            nuevos = partidos_del_dia(slug, dia, escudos)
             partidos = [p for p in partidos if p['dia'] != dia.isoformat()] + nuevos
         except Exception as err:
             errores += 1
@@ -469,7 +484,7 @@ def actualizar(slug, inicio, historial, forzar):
         sys.exit(f'No se pudo bajar ningún día de {slug}.')
 
     try:
-        filas = tabla(slug)
+        filas = tabla(slug, escudos)
     except Exception as err:
         print(f'  tabla: {err}')
         filas = anterior.get('tabla', [])
@@ -479,7 +494,7 @@ def actualizar(slug, inicio, historial, forzar):
     for p in partidos:   # si un id aparece dos veces (partido postergado), queda el de fecha más nueva
         unicos[p['id'] or f"sin-id-{len(unicos)}"] = p
     partidos = list(unicos.values())
-    nuevo = {'partidos': partidos, 'tabla': filas}
+    nuevo = {'partidos': partidos, 'tabla': filas, 'escudos': dict(sorted(escudos.items()))}
     if slug == 'arg.1':
         nuevo['apertura'] = tablas_por_zonas(partidos, filas, slug, hasta='2026-07-01T00:00:00Z', limite_por_equipo=16)
         nuevo['clausura'] = tablas_por_zonas(partidos, filas, slug, desde='2026-07-01T00:00:00Z', limite_por_equipo=16)

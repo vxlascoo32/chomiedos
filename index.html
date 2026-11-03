@@ -63,6 +63,12 @@ main:focus{outline:none}
 .m{display:grid;grid-template-columns:1fr 100px 1fr;align-items:center;gap:8px;padding:16px 14px 8px}
 .eq{font-size:19px;font-weight:500;line-height:1.2}
 .h{text-align:right}
+.eq{display:flex;align-items:center;gap:8px}
+.eq.h{justify-content:flex-end}
+.esc{width:24px;height:24px;object-fit:contain;flex:none}
+.esc.vacio{border-radius:50%;background:var(--line);opacity:.6}
+.gt .esc{width:20px;height:20px}
+.gt td:nth-child(2) .nom{display:flex;align-items:center;gap:8px}
 .sc{text-align:center;font:700 38px/1 'Barlow Condensed',sans-serif;letter-spacing:1px}
 .sc.next{font-size:25px;color:var(--mute);font-weight:600}
 .est{display:block;white-space:nowrap;margin-top:5px;font:500 14px Barlow,sans-serif;letter-spacing:0;color:var(--mute)}
@@ -160,11 +166,11 @@ const REGLAS = {
   'arg.1': {
     apertura: [[1, 8, 'Playoffs', '#e3a21a']],
     clausura: [[1, 8, 'Playoffs', '#e3a21a']],
-    anual: [[1, 3, 'Copa Libertadores', '#2b7bd6'], [4, 8, 'Copa Sudamericana', '#e3a21a']],
+    anual: [[1, 3, 'Copa Libertadores', '#2b7bd6'], [4, 8, 'Copa Sudamericana', '#e3a21a'], [-1, -1, 'Descenso', '#d64545']],
     promedios: [[-1, -1, 'Descenso', '#d64545']]
   },
   'arg.2': {
-    torneo: [[1, 1, 'Final por el primer ascenso', '#2fa866'], [2, 8, 'Reducido por el segundo ascenso', '#e3a21a']]
+    torneo: [[1, 1, 'Final por el primer ascenso', '#2fa866'], [2, 8, 'Reducido por el segundo ascenso', '#e3a21a'], [-2, -1, 'Descenso', '#d64545']]
   },
   'bra.1': {
     torneo: [[1, 6, 'Copa Libertadores', '#2b7bd6'], [7, 12, 'Copa Sudamericana', '#e3a21a'], [-4, -1, 'Descenso', '#d64545']]
@@ -184,7 +190,7 @@ const REGLAS = {
   }
 };
 
-const S = {liga:0, vista:'inicio', sub:'torneo', dia:{}, inicioDia:null, tk:0}; // dia: día elegido en cada liga
+const S = {liga:0, vista:'inicio', sub:'clausura', dia:{}, inicioDia:null, tk:0}; // dia: día elegido en cada liga
 const cache = {};
 const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const color = c => /^#[0-9a-f]{6}$/i.test(c) ? c : '#888888';
@@ -199,9 +205,23 @@ function diaTexto(dia){
 }
 
 /* ===== Datos: datos/<liga>.json, que mantiene actualizar.py ===== */
-function armar(raw){
+const ESCUDOS = {};   // liga -> {nombre del equipo: URL del escudo (de ESPN)}
+function regEscudo(slug, equipo){
+  const n = equipo?.displayName, u = equipo?.logo || equipo?.logos?.find(l => l.href)?.href;
+  if(!n || !u || !/^https:\/\//.test(u)) return;
+  const m = ESCUDOS[slug] = ESCUDOS[slug] || {};
+  m[n] = u;
+  if(slug === 'uru.1') m['@' + claveUru(n)] = u;   // las tablas de Uruguay usan nombres cortos ("Defensor Sp.")
+}
+function escudo(slug, nombre){
+  const m = ESCUDOS[slug] || {}, u = m[nombre] || (slug === 'uru.1' ? m['@' + claveUru(nombre)] : '');
+  return u ? `<img class="esc" src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="esc vacio" aria-hidden="true"></span>`;
+}
+
+function armar(raw, slug){
   const j = JSON.parse(raw);
   j.raw = raw;
+  Object.entries(j.escudos || {}).forEach(([n, u]) => regEscudo(slug, {displayName:n, logo:u}));
   j.partidos = [...new Map(j.partidos.map((p, i) => [p.id || 'sin-id-' + i, p])).values()];   // si un id está dos veces, queda el último
   j.dias = [...new Set(j.partidos.map(p => p.dia))].sort(); // solo días con partidos: los vacíos se saltean
   return j;
@@ -212,7 +232,7 @@ async function datosLiga(slug){
   try{
     const r = await fetch(`datos/${slug}.json`, {cache:'no-cache'});
     if(!r.ok) throw new Error(`no se encontró datos/${slug}.json (${r.status})`);
-    cache[slug] = armar(await r.text());
+    cache[slug] = armar(await r.text(), slug);
   } catch(e){
     console.warn('Datos de GitHub:', e.message);
     cache[slug] = {partidos:[], tabla:[], dias:[], actualizado:new Date().toISOString(), raw:'', ausente:true, t:Date.now()};   // solo lo del Worker
@@ -231,10 +251,11 @@ function marcar(filas, reglas){
   });
 }
 
-function leerEventos(j, dia){
+function leerEventos(j, dia, slug){
   return (j.events || []).map(e => {
     const comp = e.competitions?.[0] || {}, eq = comp.competitors || [], st = e.status?.type || {};
     const L = eq.find(x => x.homeAway === 'home') || eq[0] || {}, V = eq.find(x => x.homeAway === 'away') || eq[1] || {};
+    regEscudo(slug, L.team); regEscudo(slug, V.team);
     const lado = {[L.team?.id]:'h', [V.team?.id]:'v'};
     const goles = (comp.details || []).filter(d => d.scoringPlay && lado[d.team?.id] && !/shootout/i.test(d.type?.text || ''))
       .map(d => ({l:lado[d.team.id], n:d.athletesInvolved?.[0]?.displayName || d.athletesInvolved?.[0]?.shortName || '',
@@ -251,6 +272,7 @@ function leerTabla(j, slug){
   const grupos = j.children?.length ? j.children : [j];
   return grupos.map(g => {
     const filas = (g.standings?.entries || []).map(e => {
+      regEscudo(slug, e.team);
       const s = k => Math.trunc(e.stats?.find(x => x.name === k)?.value || 0);
       const fila = {n:e.team?.displayName, pj:s('gamesPlayed'), g:s('wins'), e:s('ties'), p:s('losses'),
                     gf:s('pointsFor'), gc:s('pointsAgainst'), dg:s('pointDifferential'), pts:s('points'), rank:s('rank')};
@@ -473,7 +495,7 @@ async function pedirVivo(clave, ruta, extra, vence, leer){
   } catch(e){ vivoEstado.fallo++; vivoEstado.ultimo = String(e.message || e); console.warn('Worker:', e); return null; }
 }
 async function vivoPartidos(slug, dia){   // null si falla o viene vacío: se usan los datos de GitHub
-  const ps = await pedirVivo(slug + dia, `site/v2/sports/soccer/${slug}/scoreboard`, `&dates=${dia.replace(/-/g, '')}`, 10000, j => leerEventos(j, dia));
+  const ps = await pedirVivo(slug + dia, `site/v2/sports/soccer/${slug}/scoreboard`, `&dates=${dia.replace(/-/g, '')}`, 10000, j => leerEventos(j, dia, slug));
   return ps && ps.length ? ps : null;
 }
 function vivoTabla(slug){
@@ -556,7 +578,7 @@ function htmlTabla(filas, titulo, mostrarTitulo = false){
     ${th('+/-', 'Diferencia de gol')}${th('G', 'Ganados')}${th('E', 'Empatados')}${th('P', 'Perdidos')}${conProm ? th('Prom.', 'Promedio de puntos por partido') : ''}${conUlt ? th('Últimas', 'Últimos 5 resultados, el más reciente a la derecha') : ''}
     </tr></thead><tbody>` +
     filas.map((f, i) => `<tr><td><span class="pos"${f.nota ? ` style="background:${color(f.nota.c)};color:${tinta(f.nota.c)}"` : ''}>${i + 1}</span>${f.nota ? `<span class="sr"> (${esc(f.nota.d)})</span>` : ''}</td>
-      <td>${esc(f.n)}</td><td class="pt">${f.pts}</td><td>${f.pj}</td><td>${f.gf}:${f.gc}</td><td>${f.dg}</td><td>${f.g}</td><td>${f.e}</td><td>${f.p}</td>
+      <td><span class="nom">${escudo(LIGAS[S.liga].espn, f.n)}<span>${esc(f.n)}</span></span></td><td class="pt">${f.pts}</td><td>${f.pj}</td><td>${f.gf}:${f.gc}</td><td>${f.dg}</td><td>${f.g}</td><td>${f.e}</td><td>${f.p}</td>
       ${conProm ? `<td>${f.prom != null ? f.prom.toFixed(3) : ''}</td>` : ''}${conUlt ? `<td class="ult">${ult(f).map(r => `<span class="fm ${r}" title="${nombres[r]}">${r}</span>`).join('')}</td>` : ''}</tr>`).join('') +
     `</tbody></table></div>` +
     (ley.length ? `<div class="zpie">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '') +
@@ -581,9 +603,10 @@ function htmlPartido(p, mostrarRonda = false){
   const estado = enjuego ? `<i class="punto"></i>En vivo ${esc(p.detalle)}` : susp ? esc(p.detalle) : jug ? 'Final' + (p.pl != null && p.pv != null ? ` · penales ${esc(p.pl)}-${esc(p.pv)}` : '') : '';
   const ronda = mostrarRonda && p.ronda ? `<small class="est">${esc(p.ronda)}</small>` : '';
   const gH = golesDe(p, 'h'), gV = golesDe(p, 'v');
-  return `<li class="mw ${enjuego ? 'envivo' : ''}"><div class="m"><span class="eq h ${gl?'w':''}">${esc(p.h)}</span>
+  const sl = p.ligaSlug || LIGAS[S.liga].espn;
+  return `<li class="mw ${enjuego ? 'envivo' : ''}"><div class="m"><span class="eq h ${gl?'w':''}"><span>${esc(p.h)}</span>${escudo(sl, p.h)}</span>
     <span class="sc ${jug && !susp ? '' : 'next'}">${centro}${ronda}${estado ? `<small class="est ${enjuego ? 'vivo' : ''}">${estado}</small>` : ''}</span>
-    <span class="eq ${gv?'w':''}">${esc(p.v)}</span></div>` +
+    <span class="eq ${gv?'w':''}">${escudo(sl, p.v)}<span>${esc(p.v)}</span></span></div>` +
     (gH || gV ? `<div class="g"><span class="h">${gH}</span><span></span><span>${gV}</span></div>` : '') + `</li>`;
 }
 
@@ -608,7 +631,7 @@ function abrirMenu(abrir){
 }
 function elegirLiga(i){
   S.liga = i;
-  S.sub = ['arg.1','uru.1'].includes(LIGAS[i].espn) ? 'apertura' : 'torneo';
+  S.sub = LIGAS[i].espn === 'arg.1' ? 'clausura' : LIGAS[i].espn === 'uru.1' ? 'apertura' : 'torneo';
   abrirMenu(false); render();
   document.getElementById('ligaBtn').focus();
 }
@@ -685,9 +708,6 @@ async function cargar(cab, tk, slug){
       const aperturaZonas = ['arg.1','arg.2'].includes(slug) && D.apertura
         ? tablasPorZonas(PS, D.tabla, slug, '2026-01-01T00:00:00Z', '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0)
         : null;
-      const clausuraZonas = ['arg.1','arg.2'].includes(slug) && D.clausura
-        ? tablasPorZonas(PS, D.tabla, slug, '2026-07-01T00:00:00Z', null, slug === 'arg.1' ? 16 : 0)
-        : null;
       const anual = D.anual ? (EV.vivo ? tablaAnual(PS, slug) : D.anual) : null;
       const promedios = ['arg.1','uru.1'].includes(slug) ? tablaPromedios(PS, slug) : null;
       if(apertura) marcar(apertura, REGLAS[slug]?.apertura || []);
@@ -695,11 +715,12 @@ async function cargar(cab, tk, slug){
       if(clausura) marcar(clausura, REGLAS[slug]?.clausura || []);
       if(anual) marcar(anual, REGLAS[slug]?.anual || []);
       activo = hayActividad(PS);
+      if(slug === 'arg.1' && !['apertura', 'clausura', 'anual', 'promedios'].includes(S.sub)) S.sub = 'clausura';
       if(slug !== 'arg.2' && (D.apertura || D.intermedio || D.clausura || D.anual)){
         const opciones = [];
         if(slug === 'arg.1'){
           if(D.apertura) opciones.push(['apertura','Torneo Apertura']);
-          if(D.clausura) opciones.push(['clausura','Torneo Clausura']);
+          opciones.push(['clausura','Torneo Clausura']);
         } else if(slug === 'uru.1'){
           if(D.apertura) opciones.push(['apertura','Torneo Apertura']);
           if(D.intermedio) opciones.push(['intermedio','Torneo Intermedio']);
@@ -730,11 +751,16 @@ async function cargar(cab, tk, slug){
       } else if(D.intermedio && S.sub === 'intermedio'){
         marcar(D.intermedio, REGLAS[slug]?.intermedio || []);
         h += htmlTabla(intermedio.length ? intermedio : D.intermedio, 'Torneo Intermedio');
+      } else if(slug === 'arg.1' && S.sub === 'clausura'){
+        const zonas = tv || D.tabla;   // posiciones de ESPN, en vivo con el Worker; si falla, los datos de GitHub
+        h += zonas.map(g => {
+          const nombre = String(g.nombre || 'Zona').replace(/^Group /, 'Zona ');
+          marcar(g.filas, REGLAS[slug]?.clausura || []);
+          return htmlTabla(g.filas, nombre, zonas.length > 1);
+        }).join('');
       } else if(D.clausura && S.sub === 'clausura'){
         marcar(D.clausura, REGLAS[slug]?.clausura || []);
-        h += ['arg.1','arg.2'].includes(slug)
-          ? clausuraZonas.map(g => htmlTabla(g.filas, g.nombre, clausuraZonas.length > 1)).join('')
-          : htmlTabla(clausura.length ? clausura : D.clausura, 'Torneo Clausura');
+        h += htmlTabla(clausura.length ? clausura : D.clausura, 'Torneo Clausura');
       } else if(D.anual && S.sub === 'anual'){
         h += htmlTabla(anual, 'Tabla Anual') + (slug === 'arg.1' ? `<p class="nota">Suma la fase regular del Apertura y del Clausura (los playoffs no cuentan).
           * Los cupos se corren si algún equipo ya clasificó por otra vía (campeones, Copa Argentina). También desciende el último
@@ -771,7 +797,7 @@ setInterval(async () => {
     const r = await fetch(`datos/${slug}.json`, {cache:'no-cache'});
     if(!r.ok) return;
     const raw = await r.text();
-    if(raw !== cache[slug]?.raw){ cache[slug] = armar(raw); render(); }
+    if(raw !== cache[slug]?.raw){ cache[slug] = armar(raw, slug); render(); }
   } catch(e){}
 }, 60000);
 
