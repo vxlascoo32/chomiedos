@@ -85,7 +85,7 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 /* Intermedio uruguayo: una tarjeta por zona, al estilo Promiedos */
 .zona{margin:14px 12px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .zona h3{margin:0;padding:12px 14px;font:700 24px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.5px}
-.zona .tw{border-top:1px solid var(--line)}
+.zona h3 + .tw{border-top:1px solid var(--line)}
 .gt{font-size:15px}
 .gt th,.gt td{padding:7px 4px;text-align:center;white-space:nowrap}
 .gt th{font-size:13px}
@@ -93,12 +93,11 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 .gt td:last-child{font:inherit;color:inherit}
 .gt td.pt{font-weight:700}
 .gt .pos{display:inline-block;min-width:24px;line-height:24px;border-radius:4px;font-weight:700}
-.gt .pos.fin{background:#1aa3e8;color:#fff}
 .gt td.ult{padding-right:8px}
 .fm{display:inline-block;width:19px;height:19px;line-height:19px;margin:0 1.5px;border-radius:4px;font:700 12px 'Barlow Condensed',sans-serif;color:#fff;text-align:center}
 .fm.V{background:#5b9f45}.fm.E{background:#f1b60b;color:#2a2200}.fm.D{background:#e0463c}
-.zpie{display:flex;justify-content:space-between;gap:10px;padding:9px 14px;border-top:1px solid var(--line);font-size:14px;color:var(--mute)}
-.zpie i{display:inline-block;width:10px;height:10px;margin-right:7px;border-radius:50%;background:#1aa3e8}
+.zpie{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 18px;padding:9px 14px;border-top:1px solid var(--line);font-size:14px;color:var(--mute)}
+.zpie i{display:inline-block;width:10px;height:10px;margin-right:7px;border-radius:50%}
 .zpie b{color:#e8890c;font-weight:700}
 @media(max-width:560px){.gt{font-size:14px}.fm{width:17px;height:17px;line-height:17px;font-size:11px;margin:0 1px}}
 @media(max-width:560px){
@@ -208,10 +207,15 @@ function armar(raw){
   return j;
 }
 async function datosLiga(slug){
-  if(!cache[slug]){
+  const c = cache[slug];
+  if(c && !(c.ausente && Date.now() - c.t > 60000)) return c;   // si faltaba el archivo, se vuelve a intentar cada minuto
+  try{
     const r = await fetch(`datos/${slug}.json`, {cache:'no-cache'});
     if(!r.ok) throw new Error(`no se encontró datos/${slug}.json (${r.status})`);
     cache[slug] = armar(await r.text());
+  } catch(e){
+    console.warn('Datos de GitHub:', e.message);
+    cache[slug] = {partidos:[], tabla:[], dias:[], actualizado:new Date().toISOString(), raw:'', ausente:true, t:Date.now()};   // solo lo del Worker
   }
   return cache[slug];
 }
@@ -411,25 +415,9 @@ function anualUru(ps){
   return filas;
 }
 
-// Una tarjeta por zona: # · Equipos · PTS · J · Gol · +/- · G · E · P · Últimas
-function htmlZona(g){
-  const th = (sig, t) => `<th scope="col"><abbr title="${t}">${sig}</abbr></th>`;
-  const nombres = {V:'Victoria', E:'Empate', D:'Derrota'};
-  const ajustes = g.filas.filter(f => f.aj);
-  return `<section class="zona" aria-label="${esc(g.nombre)}"><h3>${esc(g.nombre)}</h3><div class="tw"><table class="gt">
-    <caption class="sr">${esc(g.nombre)} del Torneo Intermedio</caption><thead><tr>
-    ${th('#', 'Posición')}<th scope="col">Equipos</th>${th('PTS', 'Puntos')}${th('J', 'Partidos jugados')}${th('Gol', 'Goles a favor : en contra')}
-    ${th('+/-', 'Diferencia de gol')}${th('G', 'Ganados')}${th('E', 'Empatados')}${th('P', 'Perdidos')}${th('Últimas', 'Últimos 5 resultados, el más reciente a la derecha')}
-    </tr></thead><tbody>` +
-    g.filas.map((f, i) => `<tr><td><span class="pos ${f.nota ? 'fin' : ''}">${i + 1}</span>${f.nota ? `<span class="sr"> (${esc(f.nota.d)})</span>` : ''}</td>
-      <td>${esc(f.n)}</td><td class="pt">${f.pts}</td><td>${f.pj}</td><td>${f.gf}:${f.gc}</td><td>${f.dg}</td><td>${f.g}</td><td>${f.e}</td><td>${f.p}</td>
-      <td class="ult">${f.ult.map(r => `<span class="fm ${r}" title="${nombres[r]}">${r}</span>`).join('')}</td></tr>`).join('') +
-    `</tbody></table></div><div class="zpie"><span><i></i>Final</span></div>` +
-    ajustes.map(f => `<div class="zpie"><span>${esc(f.n)}</span><span><b>${f.aj.p}</b> (${esc(f.aj.m)})</span></div>`).join('') + `</section>`;
-}
-
 async function vistaUru(D){
   const EV = await partidosEnVivo(D, 'uru.1'), ps = EV.ps;
+  FORMA = formaPorEquipo(ps);
   const opciones = [['apertura', 'Torneo Apertura'], ['intermedio', 'Torneo Intermedio'], ['clausura', 'Torneo Clausura'],
     ['anual', 'Tabla Anual'], ['promedios', 'Tabla de promedios']];
   if(!opciones.some(o => o[0] === S.sub)) S.sub = 'apertura';
@@ -440,7 +428,7 @@ async function vistaUru(D){
     h += htmlTabla(f, 'Torneo Apertura') + '<p class="nota">15 fechas, todos contra todos.</p>';
   } else if(S.sub === 'intermedio'){
     const grupos = gruposIntermedio(ps);
-    h += grupos.map(htmlZona).join('');
+    h += grupos.map(g => htmlTabla(g.filas, g.nombre, true)).join('');
     const lideres = grupos.map(g => g.filas[0]).filter(f => f && f.pj > 0).map(f => f.k);
     if(lideres.length === 2){   // la final la juegan los ganadores de cada zona
       const par = [...lideres].sort().join('|'), [d, hs] = URU.ventanas.intermedio;
@@ -524,7 +512,7 @@ function programar(ms){
 }
 
 function irDia(n){
-  const slug = LIGAS[S.liga].espn, dias = cache[slug].dias;
+  const slug = LIGAS[S.liga].espn, dias = cache[slug].dias.length ? cache[slug].dias : [iso(new Date())];
   S.dia[slug] = dias[Math.min(dias.length-1, Math.max(0, dias.indexOf(S.dia[slug]) + n))];
   render();
 }
@@ -536,19 +524,43 @@ function moverInicio(n){
 }
 
 /* ===== Piezas de la pantalla ===== */
-function htmlTabla(filas, titulo){
+let FORMA = {};   // últimos 5 resultados por equipo, de la liga que se está mostrando
+
+function formaPorEquipo(partidos){
+  const por = {};
+  partidos.filter(terminado).sort(porFecha).forEach(p => {
+    const a = +p.gl, b = +p.gv;
+    [[p.h, a, b], [p.v, b, a]].forEach(([n, gf, gc]) => (por[n] = por[n] || []).push(gf > gc ? 'V' : gf < gc ? 'D' : 'E'));
+  });
+  Object.keys(por).forEach(k => por[k] = por[k].slice(-5));
+  return por;
+}
+
+// Texto blanco u oscuro según el color de fondo, para que el número de la posición siempre se lea
+function tinta(c){
+  const n = parseInt(color(c).slice(1), 16), l = 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+  return l > 170 ? '#1b1b1b' : '#fff';
+}
+
+// Tarjeta de posiciones, igual para todas las ligas: # · Equipos · PTS · J · Gol · +/- · G · E · P · Últimas
+function htmlTabla(filas, titulo, mostrarTitulo = false){
+  const th = (sig, t) => `<th scope="col"><abbr title="${t}">${sig}</abbr></th>`;
+  const nombres = {V:'Victoria', E:'Empate', D:'Derrota'};
+  const ult = f => f.ult || FORMA[f.n] || [];
+  const conUlt = filas.some(f => ult(f).length), conProm = filas.some(f => f.prom != null);
   const ley = [], vistos = {};
   filas.forEach(f => { if(f.nota && !vistos[f.nota.d]){ vistos[f.nota.d] = 1; ley.push(f.nota); } });
-  const th = (sig, t, c = '') => `<th scope="col" class="${c}"><abbr title="${t}">${sig}</abbr></th>`;
-  return `<div class="tw"><table><caption class="sr">${esc(titulo)}</caption><thead><tr>
-    ${th('#', 'Posición')}<th scope="col">Equipo</th>${th('PJ', 'Partidos jugados')}${th('G', 'Ganados')}${th('E', 'Empatados')}
-    ${th('P', 'Perdidos')}${th('GF', 'Goles a favor', 'gf')}${th('GC', 'Goles en contra', 'gf')}${th('DG', 'Diferencia de gol')}${th('Pts', 'Puntos')}${filas.some(t => t.prom != null) ? th('Prom.', 'Promedio de puntos por partido', 'gf') : ''}
+  return `<section class="zona" aria-label="${esc(titulo)}">${mostrarTitulo ? `<h3>${esc(titulo)}</h3>` : ''}<div class="tw"><table class="gt">
+    <caption class="sr">${esc(titulo)}</caption><thead><tr>
+    ${th('#', 'Posición')}<th scope="col">Equipos</th>${th('PTS', 'Puntos')}${th('J', 'Partidos jugados')}${th('Gol', 'Goles a favor : en contra')}
+    ${th('+/-', 'Diferencia de gol')}${th('G', 'Ganados')}${th('E', 'Empatados')}${th('P', 'Perdidos')}${conProm ? th('Prom.', 'Promedio de puntos por partido') : ''}${conUlt ? th('Últimas', 'Últimos 5 resultados, el más reciente a la derecha') : ''}
     </tr></thead><tbody>` +
-    filas.map((t, i) => `<tr><td${t.nota ? ` style="box-shadow:inset 6px 0 ${color(t.nota.c)}"` : ''}>${i+1}${t.nota ? `<span class="sr"> (${esc(t.nota.d)})</span>` : ''}</td>
-      <td>${esc(t.n)}</td><td>${t.pj}</td><td>${t.g}</td><td>${t.e}</td><td>${t.p}</td>
-      <td class="gf">${t.gf}</td><td class="gf">${t.gc}</td><td>${t.dg>0?'+':''}${t.dg}</td><td>${t.pts}</td>${t.prom != null ? `<td>${t.prom.toFixed(3)}</td>` : ''}</tr>`).join('') +
+    filas.map((f, i) => `<tr><td><span class="pos"${f.nota ? ` style="background:${color(f.nota.c)};color:${tinta(f.nota.c)}"` : ''}>${i + 1}</span>${f.nota ? `<span class="sr"> (${esc(f.nota.d)})</span>` : ''}</td>
+      <td>${esc(f.n)}</td><td class="pt">${f.pts}</td><td>${f.pj}</td><td>${f.gf}:${f.gc}</td><td>${f.dg}</td><td>${f.g}</td><td>${f.e}</td><td>${f.p}</td>
+      ${conProm ? `<td>${f.prom != null ? f.prom.toFixed(3) : ''}</td>` : ''}${conUlt ? `<td class="ult">${ult(f).map(r => `<span class="fm ${r}" title="${nombres[r]}">${r}</span>`).join('')}</td>` : ''}</tr>`).join('') +
     `</tbody></table></div>` +
-    (ley.length ? `<div class="ley">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '');
+    (ley.length ? `<div class="zpie">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '') +
+    filas.filter(f => f.aj).map(f => `<div class="zpie"><span>${esc(f.n)}</span><span><b>${f.aj.p}</b> (${esc(f.aj.m)})</span></div>`).join('') + `</section>`;
 }
 
 // Goleadores de un lado del partido: "Nombre 23', 45' (p)"
@@ -623,7 +635,7 @@ async function cargar(cab, tk, slug){
         try{
           const D = await datosLiga(liga.espn);
           let del = D.partidos.filter(p => p.dia === dia);
-          if(del.length && esReciente(dia)) del = await vivoPartidos(liga.espn, dia) || del;
+          if(esReciente(dia) && (del.length || D.ausente)) del = await vivoPartidos(liga.espn, dia) || del;
           del.forEach(p => partidos.push({...p, liga:liga.n, ligaSlug:liga.espn}));
         }catch(e){ /* Una competición sin datos no impide mostrar las demás. */ }
       }));
@@ -639,7 +651,7 @@ async function cargar(cab, tk, slug){
     } else {
     const D = await datosLiga(slug);
     if(S.vista === 'partidos'){
-      const dias = D.dias;
+      const dias = D.dias.length ? D.dias : D.ausente ? [iso(new Date())] : [];
       if(!dias.length){ h += '<p class="nota" role="status">Todavía no hay partidos cargados para esta liga.</p>'; }
       else {
         if(!dias.includes(S.dia[slug])) S.dia[slug] = dias.find(d => d >= iso(new Date())) || dias[dias.length-1];
@@ -654,14 +666,19 @@ async function cargar(cab, tk, slug){
       }
     } else {
       if(COPAS.includes(slug)){
+        const EV = await partidosEnVivo(D, slug);
+        FORMA = formaPorEquipo(EV.ps);
+        const tv = ['conmebol.libertadores', 'conmebol.sudamericana'].includes(slug) ? await vivoTabla(slug) : null;   // solo estas tienen fase de grupos
+        h += (tv || D.tabla || []).filter(g => g.filas?.length).map(g => htmlTabla(g.filas, g.nombre || 'Posiciones', !!g.nombre)).join('');
         h += '<p class="nota" role="status">El formato de cuadro estará disponible más adelante.</p>';
-        activo = hayActividad(D.partidos);
+        activo = hayActividad(EV.ps);
       } else if(slug === 'uru.1'){
         const U = await vistaUru(D);
         h += U.h; activo = hayActividad(U.ps);
       } else {
       const tv = await vivoTabla(slug);
       const EV = await partidosEnVivo(D, slug), PS = EV.ps;
+      FORMA = formaPorEquipo(PS);
       const apertura = D.apertura ? tablaPeriodo(PS, '2026-01-01T00:00:00Z', slug === 'uru.1' ? '2026-05-30T00:00:00Z' : '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0) : null;
       const intermedio = D.intermedio ? tablaPeriodo(PS, '2026-05-30T00:00:00Z', '2026-07-20T00:00:00Z') : null;
       const clausura = D.clausura ? tablaPeriodo(PS, '2026-07-20T00:00:00Z') : null;
@@ -699,15 +716,16 @@ async function cargar(cab, tk, slug){
           `<button data-k="s-${k}" aria-pressed="${S.sub === k}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
       }
       if(slug === 'arg.2'){
-        h += D.tabla.map(g => {
+        const zonas = tv || D.tabla;   // en vivo con el Worker; si falla, los datos de GitHub
+        h += zonas.map(g => {
           const nombre = String(g.nombre || 'Zona').replace(/^Group /, 'Zona ');
           marcar(g.filas, REGLAS[slug]?.torneo || []);
-          return htmlTabla(g.filas, nombre);
+          return htmlTabla(g.filas, nombre, zonas.length > 1);
         }).join('');
       } else if(D.apertura && S.sub === 'apertura'){
         marcar(D.apertura, REGLAS[slug]?.apertura || []);
         h += ['arg.1','arg.2'].includes(slug)
-          ? aperturaZonas.map(g => htmlTabla(g.filas, g.nombre)).join('')
+          ? aperturaZonas.map(g => htmlTabla(g.filas, g.nombre, aperturaZonas.length > 1)).join('')
           : htmlTabla(apertura.length ? apertura : D.apertura, 'Torneo Apertura');
       } else if(D.intermedio && S.sub === 'intermedio'){
         marcar(D.intermedio, REGLAS[slug]?.intermedio || []);
@@ -715,7 +733,7 @@ async function cargar(cab, tk, slug){
       } else if(D.clausura && S.sub === 'clausura'){
         marcar(D.clausura, REGLAS[slug]?.clausura || []);
         h += ['arg.1','arg.2'].includes(slug)
-          ? clausuraZonas.map(g => htmlTabla(g.filas, g.nombre)).join('')
+          ? clausuraZonas.map(g => htmlTabla(g.filas, g.nombre, clausuraZonas.length > 1)).join('')
           : htmlTabla(clausura.length ? clausura : D.clausura, 'Torneo Clausura');
       } else if(D.anual && S.sub === 'anual'){
         h += htmlTabla(anual, 'Tabla Anual') + (slug === 'arg.1' ? `<p class="nota">Suma la fase regular del Apertura y del Clausura (los playoffs no cuentan).
@@ -725,7 +743,7 @@ async function cargar(cab, tk, slug){
       } else if(S.sub === 'promedios' && promedios){
         h += '<p class="nota" role="status">La tabla de promedios se está desarrollando y estará disponible más adelante.</p>';
       } else {
-        h += (tv || D.tabla).map(g => (g.nombre ? `<p class="nota"><b>${esc(g.nombre)}</b></p>` : '') + htmlTabla(g.filas, g.nombre || 'Posiciones')).join('');
+        h += (tv || D.tabla).map(g => htmlTabla(g.filas, g.nombre || 'Posiciones', !!g.nombre)).join('');
       }
       }
     }
