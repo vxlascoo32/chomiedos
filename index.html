@@ -217,7 +217,7 @@ function leerEventos(j, dia){
                   m:d.clock?.displayValue || '', t:d.penaltyKick ? 'p' : d.ownGoal ? 'e' : ''}));
     const rondaESPN = e.season?.slug || '';
     const rondas = {'round-of-64':'Treintaidosavos de final','round-of-32':'Dieciseisavos de final','round-of-16':'Octavos de final','quarterfinals':'Cuartos de final','semifinals':'Semifinal','final':'Final'};
-    return {id:e.id, dia, fecha:e.date, ronda:rondas[rondaESPN] || rondaESPN.replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpper()), h:L.team?.displayName, v:V.team?.displayName, gl:L.score, gv:V.score,
+    return {id:e.id, dia, fecha:e.date, ronda:rondas[rondaESPN] || rondaESPN.replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase()), h:L.team?.displayName, v:V.team?.displayName, gl:L.score, gv:V.score,
             estado:st.state, completo:st.completed, detalle:st.shortDetail, goles};
   });
 }
