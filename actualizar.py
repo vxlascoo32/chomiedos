@@ -137,6 +137,15 @@ def anotar_escudo(escudos, equipo):
         escudos[equipo['displayName']] = url
 
 
+def escudos_de_la_liga(slug, escudos):
+    """Escudos de TODOS los equipos de la liga (no solo los que juegan estos días), con la lista de equipos de ESPN."""
+    j = pedir(f"{BASE}site/v2/sports/soccer/{slug}/teams?limit=500")
+    for deporte in j.get('sports', []):
+        for liga in deporte.get('leagues', []):
+            for t in liga.get('teams', []):
+                anotar_escudo(escudos, t.get('team'))
+
+
 def partidos_del_dia(slug, dia, escudos=None):
     j = pedir(f"{BASE}site/v2/sports/soccer/{slug}/scoreboard?dates={dia:%Y%m%d}")
     salida = []
@@ -467,6 +476,12 @@ def actualizar(slug, inicio, historial, forzar):
         desde, hasta = hoy - timedelta(days=2), hoy + timedelta(days=6)
     else:
         desde, hasta = hoy - timedelta(days=1), hoy + timedelta(days=1)   # rápido: solo hoy y alrededores
+
+    if revision_completa:   # así el escudo no depende de que el equipo juegue en los últimos días
+        try:
+            escudos_de_la_liga(slug, escudos)
+        except Exception as err:
+            print(f'  escudos: {err}')
 
     dias = errores = 0
     dia = desde
