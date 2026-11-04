@@ -88,6 +88,7 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 .ley{display:flex;flex-wrap:wrap;gap:8px 18px;padding:12px 14px;font-size:15px;color:var(--mute)}
 .ley i{display:inline-block;width:12px;height:12px;margin-right:7px;border-radius:3px}
 .nota{margin:0;padding:12px 14px;color:var(--mute);font-size:15px}
+.sec{margin:22px 14px 8px;font:700 26px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.5px}
 .llave-nav{display:flex;gap:8px;overflow-x:auto;padding:4px 12px 10px}
 .llave-nav button{flex:none;min-height:36px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:none;color:var(--ink);font:600 17px 'Barlow Condensed',sans-serif;cursor:pointer}
 .llave-nav button:hover{border-color:var(--acc)}
@@ -259,6 +260,9 @@ const PROXY = 'https://chomiedos.ginozuccotti2009.workers.dev';
 // Los negativos cuentan desde el final (-1 = último). Es la misma lista que tiene actualizar.py.
 const COPAS = ['arg.copa','uru.copa_auf_uruguay','bra.copa_do_brazil','conmebol.libertadores','conmebol.sudamericana','uefa.champions','uefa.europa'];
 const REGLAS = {
+  // Libertadores: las mismas reglas en todos los grupos; reemplazan los textos que manda ESPN (que solo marca algunos grupos)
+  'conmebol.sudamericana': {reemplazar: true, torneo: [[1, 1, 'Clasifica a octavos de final', '#8fdcb4'], [2, 2, 'Clasifica a los playoffs de octavos', '#b7bfd1']]},
+  'conmebol.libertadores': {reemplazar: true, torneo: [[1, 2, 'Clasifican a octavos de final', '#8fdcb4'], [3, 3, 'Clasifica a los playoffs de la Sudamericana', '#b7bfd1']]},
   'arg.1': {
     apertura: [[1, 8, 'Playoffs', '#e3a21a']],
     clausura: [[1, 8, 'Playoffs', '#e3a21a']],
@@ -694,15 +698,17 @@ async function vistaCol(D){
 /* ===== Cuadros de las copas (fases eliminatorias) =====
    Se arman con los partidos de cada ronda: los partidos entre los mismos dos equipos son un cruce (ida y vuelta).
    Gana el que suma más goles; si empatan, el que ganó por penales. Para sumar otra copa, agregarla a CUADROS. */
-const CUADROS = ['arg.copa', 'conmebol.libertadores'];
-const IDA_VUELTA = {'conmebol.libertadores': ronda => !/^final$/i.test(ronda)};   // rondas a doble partido, aunque todavía no esté la vuelta cargada
+const CUADROS = ['arg.copa', 'conmebol.libertadores', 'conmebol.sudamericana'];
+const IDA_VUELTA = {'conmebol.libertadores': ronda => !/^final$/i.test(ronda), 'conmebol.sudamericana': ronda => !/^final$/i.test(ronda)};   // rondas a doble partido, aunque todavía no esté la vuelta cargada
 const RE_FASE_GRUPOS = /grupo|group|fase de liga|league phase/i;
+const RE_ELIM = /final|octavos|cuartos|semi|dieciseis|treintaidos|round of|quarter|play-?offs?/i;   // rondas eliminatorias (para ligas que mezclan fase regular y playoffs)
 
 function traducirRonda(r){
   const n = {first:1, second:2, third:3, fourth:4, '1st':1, '2nd':2, '3rd':3, '4th':4};
   const m = String(r).toLowerCase().match(/(first|second|third|fourth|1st|2nd|3rd|4th)\s+qualifying/);
   if(m) return 'Fase previa ' + n[m[1]];
   if(/preliminary/i.test(r)) return 'Fase previa';
+  if(/knockout round play/i.test(r)) return 'Playoffs de octavos';
   if(/third place|3rd place/i.test(r)) return 'Tercer puesto';
   return r;
 }
@@ -730,10 +736,12 @@ function resolverLazo(T, dobles){
   return {a:T.a, b:T.b, filas, g, pen, ganador, completo, vivo, dobles, pendiente, hechos, primera:L[0].fecha || ''};
 }
 
-function armarCuadro(ps, slug){
-  const rondas = {};
+function armarCuadro(ps, slug, opc = {}){
+  const rondas = {}, desde = opc.desde || '', hasta = opc.hasta || null;
   [...ps].sort(porFecha).forEach(p => {
-    if(!p.ronda || RE_FASE_GRUPOS.test(p.ronda) || !p.h || !p.v) return;
+    if(!p.ronda || !p.h || !p.v || (opc.soloElim ? !RE_ELIM.test(p.ronda) : RE_FASE_GRUPOS.test(p.ronda))) return;
+    const f = p.fecha || '';
+    if(f < desde || (hasta && f >= hasta)) return;
     const nombre = traducirRonda(p.ronda);
     const R = rondas[nombre] = rondas[nombre] || {nombre, primera:p.fecha || '', lazos:{}};
     const k = [p.h, p.v].sort().join('|');
@@ -762,19 +770,29 @@ function htmlLazo(slug, z){
   return `<div class="lazo">${fila(0)}${fila(1)}${pie ? `<div class="lzpie">${esc(pie)}</div>` : ''}</div>`;
 }
 
-function htmlCuadro(slug, ps){
-  const rondas = armarCuadro(ps, slug);
-  if(!rondas.length) return '<p class="nota" role="status">Todavía no hay cruces eliminatorios cargados.</p>';
+function htmlCuadro(slug, ps, opc = {}){
+  const rondas = armarCuadro(ps, slug, opc);
+  if(!rondas.length) return `<p class="nota" role="status">${opc.vacio || 'Todavía no hay cruces eliminatorios cargados.'}</p>`;
   const ahora = new Date().toISOString();
   let act = 0;
   rondas.forEach((R, i) => { if(R.lazos[0].primera <= ahora) act = i; });   // la ronda que se está jugando (o la última jugada)
   const ultima = rondas[rondas.length - 1], fin = /^final$/i.test(ultima.nombre) && ultima.lazos.length === 1 ? ultima.lazos[0] : null;
   const campeon = fin && fin.ganador != null ? (fin.ganador === 0 ? fin.a : fin.b) : null;
-  return (campeon ? `<div class="campeon">${escudo(slug, campeon)}<div><small>Campeón</small>${esc(campeon)}</div></div>` : '') +
+  return (campeon ? `<div class="campeon">${escudo(slug, campeon)}<div><small>Campeón${opc.campeonDe ? ' del ' + esc(opc.campeonDe) : ''}</small>${esc(campeon)}</div></div>` : '') +
     `<nav class="llave-nav" aria-label="Ir a una ronda">${rondas.map((R, i) => `<button type="button" onclick="document.getElementById('rd-${i}').scrollIntoView({behavior:'smooth',inline:'start',block:'nearest'})">${esc(R.nombre)}</button>`).join('')}</nav>` +
-    `<div class="llave" data-k="${esc(slug)}" tabindex="0" role="region" aria-label="Cuadro de eliminatorias">` +
+    `<div class="llave" data-k="${esc(slug + (opc.k || ''))}" tabindex="0" role="region" aria-label="Cuadro de eliminatorias">` +
     rondas.map((R, i) => `<section class="rd" id="rd-${i}" ${i === act ? 'data-act="1"' : ''}><h4>${esc(R.nombre)}</h4><div class="lazos">${R.lazos.map(z => htmlLazo(slug, z)).join('')}</div></section>`).join('') + `</div>` +
     (rondas.some(R => R.dobles) ? '<p class="nota">Las rondas a doble partido muestran el resultado de la ida, el de la vuelta y el global (en negrita).</p>' : '');
+}
+
+// Playoffs de la liga argentina: se arman con los partidos eliminatorios dentro de las fechas de cada torneo
+function htmlPlayoffs(slug, ps, torneo){
+  const ap = torneo === 'apertura';
+  return `<h3 class="sec">Playoffs</h3>` + htmlCuadro(slug, ps, {
+    k: '-' + torneo, soloElim: true, campeonDe: ap ? 'Apertura' : 'Clausura',
+    desde: ap ? '2026-01-01T00:00Z' : '2026-07-01T00:00Z', hasta: ap ? '2026-07-01T00:00Z' : null,
+    vacio: ap ? 'Todavía no hay cruces de playoffs cargados.' : 'Los playoffs del Clausura se van a mostrar acá cuando empiecen, con los clasificados de la fase regular.'
+  });
 }
 
 async function vistaUru(D){
@@ -1023,7 +1041,7 @@ async function cargar(cab, tk, slug){
         FORMA = formaPorEquipo(EV.ps);
         const tv = ['conmebol.libertadores', 'conmebol.sudamericana', 'uefa.champions', 'uefa.europa'].includes(slug) ? await vivoTabla(slug) : null;   // solo estas tienen fase de grupos o de liga
         const grupos = (tv || D.tabla || []).filter(g => g.filas?.length);
-        const htmlGrupos = () => grupos.map(g => { marcar(g.filas, REGLAS[slug]?.torneo || []); return htmlTabla(g.filas, g.nombre || 'Posiciones', !!g.nombre); }).join('');
+        const htmlGrupos = () => grupos.map(g => { if(REGLAS[slug]?.reemplazar) g.filas.forEach(f => delete f.nota); marcar(g.filas, REGLAS[slug]?.torneo || []); return htmlTabla(g.filas, g.nombre || 'Posiciones', !!g.nombre); }).join('');
         if(CUADROS.includes(slug)){
           const opciones = [['cuadro', 'Cuadro']].concat(grupos.length ? [['grupos', 'Fase de grupos']] : []);
           if(!opciones.some(o => o[0] === S.sub)) S.sub = 'cuadro';
@@ -1089,6 +1107,7 @@ async function cargar(cab, tk, slug){
         h += ['arg.1','arg.2'].includes(slug)
           ? aperturaZonas.map(g => htmlTabla(g.filas, g.nombre, aperturaZonas.length > 1)).join('')
           : htmlTabla(apertura.length ? apertura : D.apertura, 'Torneo Apertura');
+        if(slug === 'arg.1') h += htmlPlayoffs(slug, PS, 'apertura');
       } else if(D.intermedio && S.sub === 'intermedio'){
         marcar(D.intermedio, REGLAS[slug]?.intermedio || []);
         h += htmlTabla(intermedio.length ? intermedio : D.intermedio, 'Torneo Intermedio');
@@ -1099,6 +1118,7 @@ async function cargar(cab, tk, slug){
           marcar(g.filas, REGLAS[slug]?.clausura || []);
           return htmlTabla(g.filas, nombre, zonas.length > 1);
         }).join('');
+        h += htmlPlayoffs(slug, PS, 'clausura');
       } else if(D.clausura && S.sub === 'clausura'){
         marcar(D.clausura, REGLAS[slug]?.clausura || []);
         h += htmlTabla(clausura.length ? clausura : D.clausura, 'Torneo Clausura');
