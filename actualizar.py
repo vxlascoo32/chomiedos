@@ -33,6 +33,8 @@ LIGAS = {
     'fra.1': date(2026, 8, 1),    # Ligue 1
     'conmebol.libertadores': date(2026, 2, 1),  # CONMEBOL Libertadores
     'conmebol.sudamericana': date(2026, 2, 1),  # CONMEBOL Sudamericana
+    'uefa.champions': date(2026, 9, 1),   # UEFA Champions League
+    'uefa.europa': date(2026, 9, 1),      # UEFA Europa League
 }
 BASE = 'https://site.api.espn.com/apis/'
 
@@ -122,6 +124,7 @@ def ronda_slug(e):
         'round-of-64': 'Treintaidosavos de final', 'round-of-32': 'Dieciseisavos de final',
         'round-of-16': 'Octavos de final', 'quarterfinals': 'Cuartos de final',
         'semifinals': 'Semifinal', 'final': 'Final',
+        'league-phase': 'Fase de liga', 'knockout-round-playoffs': 'Playoffs de octavos',
     }
     return traducciones.get(texto, texto.replace('-', ' ').title() if texto else '')
 

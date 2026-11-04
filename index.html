@@ -221,6 +221,8 @@ const LIGAS = [
   {n:'Liga de Primera', espn:'chi.1', cod:'CHI', g:'Chile'},
   {n:'CONMEBOL Libertadores', espn:'conmebol.libertadores', cod:'CONMEBOL', g:'Copas internacionales'},
   {n:'CONMEBOL Sudamericana', espn:'conmebol.sudamericana', cod:'CONMEBOL', g:'Copas internacionales'},
+  {n:'UEFA Champions League', espn:'uefa.champions', cod:'UEFA', g:'Copas internacionales'},
+  {n:'UEFA Europa League', espn:'uefa.europa', cod:'UEFA', g:'Copas internacionales'},
 
   {n:'Premier League', espn:'eng.1', cod:'ING', g:'Europa'},
   {n:'LaLiga', espn:'esp.1', cod:'ESP', g:'Europa'},
@@ -235,12 +237,12 @@ const PROXY = 'https://chomiedos.ginozuccotti2009.workers.dev';
 
 // Marcas de posiciones para las tablas que ESPN no marca: [desde, hasta, texto, color].
 // Los negativos cuentan desde el final (-1 = último). Es la misma lista que tiene actualizar.py.
-const COPAS = ['arg.copa','uru.copa_auf_uruguay','bra.copa_do_brazil','conmebol.libertadores','conmebol.sudamericana'];
+const COPAS = ['arg.copa','uru.copa_auf_uruguay','bra.copa_do_brazil','conmebol.libertadores','conmebol.sudamericana','uefa.champions','uefa.europa'];
 const REGLAS = {
   'arg.1': {
     apertura: [[1, 8, 'Playoffs', '#e3a21a']],
     clausura: [[1, 8, 'Playoffs', '#e3a21a']],
-    anual: [[2, 3, 'Copa Libertadores', '#2b7bd6'], [4, 8, 'Copa Sudamericana', '#e3a21a'], [-1, -1, 'Descenso', '#d64545'],[[1, 1, 'Campeón Tabla Anual + Clasificación a Libertadores', '#2fa866']]],
+    anual: [[1, 3, 'Copa Libertadores', '#2b7bd6'], [4, 8, 'Copa Sudamericana', '#e3a21a'], [-1, -1, 'Descenso', '#d64545']],
     promedios: [[-1, -1, 'Descenso', '#d64545']]
   },
   'arg.2': {
@@ -259,9 +261,11 @@ const REGLAS = {
   'col.1': {
     apertura: [[1, 8, 'Playoffs (cuartos de final)', '#e3a21a']],
     clausura: [[1, 8, 'Cuadrangulares semifinales', '#e3a21a']],
-    promedios: [[-2, -1, 'Descenso', '#d64545']],
-    anual: [[1,2, 'Copa Libertadores', '#2b7bd6'], [3,4, 'Play-Off Copa Libertadores', '#2779F5'],[5,6, 'Copa Sudamericana', '#e3a21a'], [7,8, 'Play-Off Copa Sudamericana', '#F5B427']]
+    anual: [[1, 2, 'Copa Libertadores', '#2b7bd6'], [3, 4, 'Pre Libertadores', '#5aa9e6'], [5, 6, 'Copa Sudamericana', '#e3a21a'], [7, 8, 'Pre Sudamericana', '#d9822b']],
+    promedios: [[-2, -1, 'Descenso', '#d64545']]
   },
+  'uefa.champions': {torneo: [[1, 8, 'Octavos de final', '#2fa866'], [9, 24, 'Playoffs', '#e3a21a'], [25, 36, 'Eliminados', '#d64545']]},
+  'uefa.europa': {torneo: [[1, 8, 'Octavos de final', '#2fa866'], [9, 24, 'Playoffs', '#e3a21a'], [25, 36, 'Eliminados', '#d64545']]},
   'chi.1': {
     torneo: [[1, 2, 'Copa Libertadores', '#2b7bd6'], [3, 5, 'Copa Sudamericana', '#e3a21a'], [-1, -1, 'Descenso', '#d64545']]
   }
@@ -343,7 +347,7 @@ function leerEventos(j, dia, slug){
       .map(d => ({l:lado[d.team.id], n:d.athletesInvolved?.[0]?.displayName || d.athletesInvolved?.[0]?.shortName || '',
                   m:d.clock?.displayValue || '', t:d.penaltyKick ? 'p' : d.ownGoal ? 'e' : ''}));
     const rondaESPN = e.season?.slug || '';
-    const rondas = {'round-of-64':'Treintaidosavos de final','round-of-32':'Dieciseisavos de final','round-of-16':'Octavos de final','quarterfinals':'Cuartos de final','semifinals':'Semifinal','final':'Final'};
+    const rondas = {'league-phase':'Fase de liga','knockout-round-playoffs':'Playoffs de octavos','round-of-64':'Treintaidosavos de final','round-of-32':'Dieciseisavos de final','round-of-16':'Octavos de final','quarterfinals':'Cuartos de final','semifinals':'Semifinal','final':'Final'};
     return {id:e.id, dia, fecha:e.date, ronda:rondas[rondaESPN] || rondaESPN.replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase()), h:L.team?.displayName, v:V.team?.displayName, gl:L.score, gv:V.score,
             estado:st.state, completo:st.completed, detalle:st.shortDetail, goles,
             ...(L.shootoutScore != null && V.shootoutScore != null ? {pl:L.shootoutScore, pv:V.shootoutScore} : {})};
@@ -658,7 +662,9 @@ async function vistaCol(D){
     h += htmlTabla(f, S.sub === 'apertura' ? 'Torneo Apertura' : 'Torneo Clausura') +
       `<p class="nota">19 fechas, todos contra todos. Los ocho primeros clasifican a ${S.sub === 'apertura' ? 'los playoffs (cuartos de final)' : 'los cuadrangulares semifinales'}.</p>`;
   } else if(S.sub === 'anual'){
-    h += htmlTabla(anualCol(ps), 'Tabla Anual') + '<p class="nota">Suma la fase de todos contra todos del Apertura y del Clausura (tabla de reclasificación). Los playoffs y cuadrangulares no cuentan.</p>';
+    const anual = anualCol(ps);
+    marcar(anual, REGLAS['col.1'].anual);
+    h += htmlTabla(anual, 'Tabla Anual') + '<p class="nota">Suma la fase de todos contra todos del Apertura y del Clausura (tabla de reclasificación). Los playoffs y cuadrangulares no cuentan.</p>';
   } else {
     h += htmlPromedios('col.1', anualCol(ps));
   }
@@ -909,8 +915,8 @@ async function cargar(cab, tk, slug){
       if(COPAS.includes(slug)){
         const EV = await partidosEnVivo(D, slug);
         FORMA = formaPorEquipo(EV.ps);
-        const tv = ['conmebol.libertadores', 'conmebol.sudamericana'].includes(slug) ? await vivoTabla(slug) : null;   // solo estas tienen fase de grupos
-        h += (tv || D.tabla || []).filter(g => g.filas?.length).map(g => htmlTabla(g.filas, g.nombre || 'Posiciones', !!g.nombre)).join('');
+        const tv = ['conmebol.libertadores', 'conmebol.sudamericana', 'uefa.champions', 'uefa.europa'].includes(slug) ? await vivoTabla(slug) : null;   // solo estas tienen fase de grupos o de liga
+        h += (tv || D.tabla || []).filter(g => g.filas?.length).map(g => { marcar(g.filas, REGLAS[slug]?.torneo || []); return htmlTabla(g.filas, g.nombre || 'Posiciones', !!g.nombre); }).join('');
         h += '<p class="nota" role="status">El formato de cuadro estará disponible más adelante.</p>';
         activo = hayActividad(EV.ps);
       } else if(slug === 'uru.1'){
