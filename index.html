@@ -257,7 +257,9 @@ const REGLAS = {
     promedios: [[-3, -1, 'Descenso', '#d64545']]
   },
   'col.1': {
-    torneo: [[1, 2, 'Copa Libertadores', '#2b7bd6'], [3, 4, 'Copa Sudamericana', '#e3a21a'], [-2, -1, 'Descenso', '#d64545']]
+    apertura: [[1, 8, 'Playoffs (cuartos de final)', '#e3a21a']],
+    clausura: [[1, 8, 'Cuadrangulares semifinales', '#e3a21a']],
+    promedios: [[-2, -1, 'Descenso', '#d64545']]
   },
   'chi.1': {
     torneo: [[1, 2, 'Copa Libertadores', '#2b7bd6'], [3, 5, 'Copa Sudamericana', '#e3a21a'], [-1, -1, 'Descenso', '#d64545']]
@@ -286,10 +288,10 @@ function regEscudo(slug, equipo){
   if(!n || !u || !/^https:\/\//.test(u)) return;
   const m = ESCUDOS[slug] = ESCUDOS[slug] || {};
   m[n] = u;
-  if(slug === 'uru.1') m['@' + claveUru(n)] = u;   // las tablas de Uruguay usan nombres cortos ("Defensor Sp.")
+  if(CLAVE_LIGA[slug]) m['@' + CLAVE_LIGA[slug](n)] = u;   // las tablas usan nombres cortos ("Defensor Sp.", "Boca Jrs.")
 }
 function escudo(slug, nombre){
-  const m = ESCUDOS[slug] || {}, u = m[nombre] || (slug === 'uru.1' ? m['@' + claveUru(nombre)] : '');
+  const m = ESCUDOS[slug] || {}, u = m[nombre] || (CLAVE_LIGA[slug] ? m['@' + CLAVE_LIGA[slug](nombre)] : '');
   const ini = String(nombre || '?').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\(.*?\)/g, '').split(/\s+/).filter(Boolean)
     .map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
   let hue = 0; for(const c of String(nombre)) hue = (hue * 31 + c.charCodeAt(0)) % 360;
@@ -400,7 +402,7 @@ function tablasPorZonas(partidos, tablas, slug, desde, hasta, limitePorEquipo = 
 // Suma la fase regular de Apertura y Clausura; en Argentina excluye los playoffs.
 function tablaAnual(partidos, slug){
   const apertura = tablaPeriodo(partidos, '2026-01-01T00:00:00Z', '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0);
-  const clausura = tablaPeriodo(partidos, '2026-07-01T00:00:00Z');
+  const clausura = tablaPeriodo(partidos, '2026-07-01T00:00:00Z', null, slug === 'arg.1' ? 15 : 0);
   const filas = {};
   apertura.concat(clausura).forEach(f => {
     const t = filas[f.n] = filas[f.n] || {n:f.n, pj:0, g:0, e:0, p:0, gf:0, gc:0};
@@ -449,15 +451,16 @@ const grupoUru = k => Object.keys(URU.grupos).find(g => URU.grupos[g].includes(k
 const terminado = p => p.estado === 'post' && p.completo && p.h && p.v && p.gl != null && p.gl !== '' && p.gv != null && p.gv !== '';
 const porFecha = (a, b) => (a.fecha || '').localeCompare(b.fecha || '');
 
-function formaUru(partidos){   // últimos 5 resultados de cada equipo en la liga, del más viejo al más nuevo
+function formaPorClave(partidos, clave){   // últimos 5 resultados de cada equipo en la liga, del más viejo al más nuevo
   const por = {};
   partidos.filter(terminado).sort(porFecha).forEach(p => {
     const a = +p.gl, b = +p.gv;
-    [[p.h, a, b], [p.v, b, a]].forEach(([n, gf, gc]) => (por[claveUru(n)] = por[claveUru(n)] || []).push(gf > gc ? 'V' : gf < gc ? 'D' : 'E'));
+    [[p.h, a, b], [p.v, b, a]].forEach(([n, gf, gc]) => (por[clave(n)] = por[clave(n)] || []).push(gf > gc ? 'V' : gf < gc ? 'D' : 'E'));
   });
   Object.keys(por).forEach(k => por[k] = por[k].slice(-5));
   return por;
 }
+const formaUru = partidos => formaPorClave(partidos, claveUru);
 
 function tablaUru(partidos, torneo, ajustar = true){
   const [desde, hasta] = URU.ventanas[torneo];
@@ -517,6 +520,150 @@ function anualUru(ps){
   return filas;
 }
 
+/* ===== Promedios (descenso) y liga colombiana =====
+   Los promedios son (puntos de las últimas temporadas + puntos de 2026) / partidos jugados. Los puntos y partidos de las
+   temporadas anteriores ya están cerrados, así que se cargan acá una sola vez: [clave, nombre, {año: puntos}, partidos previos].
+   Un equipo ascendido solo cuenta las temporadas que jugó en primera. Si hay empate de promedio, desempata el 2026. */
+const mkClave = lista => n => {
+  const t = String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const c = lista.find(([k, re]) => re.test(t));
+  return c ? c[0] : t;
+};
+const claveArg = mkClave([['central_cordoba', /central cordoba/], ['rosario', /rosario/], ['independiente_riv', /independiente rivadavia/],
+  ['independiente', /independiente/], ['estudiantes_rc', /rio cuarto/], ['estudiantes', /estudiantes/], ['gimnasia_m', /mendoza/],
+  ['gimnasia', /gimnasia/], ['boca', /boca/], ['river', /river/], ['argentinos', /argentinos/], ['velez', /velez/], ['racing', /racing/],
+  ['lanus', /lanus/], ['huracan', /huracan/], ['talleres', /talleres/], ['defensa', /defensa/], ['barracas', /barracas/],
+  ['instituto', /instituto/], ['union', /union/], ['san_lorenzo', /san lorenzo/], ['belgrano', /belgrano/], ['platense', /platense/],
+  ['tigre', /tigre/], ['riestra', /riestra/], ['newells', /newell/], ['tucuman', /tucuman/], ['sarmiento', /sarmiento/],
+  ['banfield', /banfield/], ['aldosivi', /aldosivi/]]);
+const claveCol = mkClave([['inter_bogota', /bogota/], ['america', /america/], ['cali', /\bcali\b/], ['nacional', /atletico nacional|^nacional\b/], ['tolima', /tolima/], ['santa_fe', /santa fe/],
+  ['bucaramanga', /bucaramanga/], ['millonarios', /millonarios/], ['junior', /junior|barranquilla/], ['medellin', /medellin/],
+  ['once_caldas', /caldas/], ['aguilas', /aguilas/], ['pasto', /pasto/], ['fortaleza', /fortaleza/], ['pereira', /pereira/],
+  ['llaneros', /llaneros/], ['alianza', /alianza/], ['cucuta', /cucuta/], ['boyaca', /boyaca/],
+  ['jaguares', /jaguares/]]);
+const CLAVE_LIGA = {'uru.1': claveUru, 'col.1': claveCol, 'arg.1': claveArg};
+
+const PROM = {
+  'arg.1': {años:[2024, 2025, 2026], descenso:1, equipos:[
+    ['boca','Boca Jrs.',{2024:67,2025:62},73], ['river','River',{2024:70,2025:53},73], ['argentinos','Argentinos',{2024:56,2025:57},73],
+    ['rosario','Central',{2024:47,2025:66},73], ['velez','Vélez',{2024:76,2025:40},73], ['racing','Racing',{2024:70,2025:53},73],
+    ['lanus','Lanús',{2024:59,2025:50},73], ['independiente','Independiente',{2024:63,2025:47},73], ['estudiantes','Estudiantes',{2024:63,2025:42},73],
+    ['huracan','Huracán',{2024:62,2025:47},73], ['independiente_riv','Independiente Riv.',{2024:46,2025:43},73], ['talleres','Talleres',{2024:72,2025:34},73],
+    ['defensa','Defensa',{2024:58,2025:38},73], ['barracas','Barracas',{2024:49,2025:49},73], ['instituto','Instituto',{2024:53,2025:34},73],
+    ['gimnasia','Gimnasia',{2024:48,2025:38},73], ['union','Unión',{2024:60,2025:39},73], ['san_lorenzo','San Lorenzo',{2024:45,2025:51},73],
+    ['belgrano','Belgrano',{2024:49,2025:47},73], ['gimnasia_m','Gimnasia (M)',{},0], ['platense','Platense',{2024:57,2025:35},73],
+    ['tigre','Tigre',{2024:39,2025:49},73], ['riestra','Riestra',{2024:48,2025:52},73], ['newells',"Newell's",{2024:49,2025:33},73],
+    ['tucuman','Atl. Tucumán',{2024:50,2025:34},73], ['sarmiento','Sarmiento',{2024:35,2025:35},73], ['central_cordoba','Central Córdoba',{2024:42,2025:42},73],
+    ['banfield','Banfield',{2024:41,2025:35},73], ['aldosivi','Aldosivi',{2025:33},32], ['estudiantes_rc','Estudiantes RC',{},0]]},
+  'col.1': {años:[2026, 2025, 2024], descenso:2, equipos:[
+    ['nacional','Atlético Nacional',{2025:72,2024:56},76], ['tolima','Tolima',{2025:74,2024:72},76], ['america','América de Cali',{2025:68,2024:62},76],
+    ['santa_fe','Santa Fe',{2025:64,2024:71},76], ['bucaramanga','Bucaramanga',{2025:66,2024:66},76], ['millonarios','Millonarios',{2025:64,2024:66},76],
+    ['junior','Junior',{2025:72,2024:60},76], ['medellin','Independiente Medellín',{2025:72,2024:58},76], ['once_caldas','Once Caldas',{2025:60,2024:60},76],
+    ['aguilas','Águilas',{2025:48,2024:46},76], ['pasto','Pasto',{2025:48,2024:49},76], ['cali','Cali',{2025:45,2024:38},76],
+    ['fortaleza','Fortaleza FC',{2025:55,2024:51},76], ['pereira','Pereira',{2025:46,2024:61},76], ['llaneros','Llaneros FC',{2025:45},38],
+    ['inter_bogota','Inter Bogotá',{2025:24,2024:55},76], ['alianza','Alianza FC',{2025:58,2024:33},76], ['cucuta','Cúcuta',{},0],
+    ['boyaca','Boyacá Chicó',{2025:36,2024:33},76], ['jaguares','Jaguares',{},0]]},
+  'uru.1': {años:[2025, 2026], descenso:3, equipos:[
+    ['penarol','Peñarol',{2025:78},37], ['nacional','Nacional',{2025:79},37], ['maldonado','Deportivo Maldonado',{},0],
+    ['liverpool','Liverpool',{2025:65},37], ['racing','Racing',{2025:53},37], ['city_torque','City Torque',{2025:49},37],
+    ['juventud','Juventud',{2025:61},37], ['defensor','Defensor Sp.',{2025:61},37], ['albion','Albion',{},0],
+    ['boston_river','Boston River',{2025:55},37], ['cerro_largo','Cerro Largo',{2025:49},37], ['central_espanol','Central Español',{},0],
+    ['wanderers','Wanderers',{2025:31},37], ['cerro','Cerro',{2025:46},37], ['danubio','Danubio',{2025:43},37], ['progreso','Progreso',{2025:39},37]]}
+};
+
+// filas26: tabla de la temporada 2026 (con n, pts, pj). Devuelve las filas ordenadas, con las columnas por temporada.
+function tablaPromedios(slug, filas26){
+  const C = PROM[slug], clave = CLAVE_LIGA[slug], act = {}, sinHistorial = [];
+  filas26.forEach(f => { act[clave(f.n)] = {n:f.n, pts:f.pts, pj:f.pj}; });
+  const base = C.equipos.slice();
+  Object.keys(act).forEach(k => { if(!base.some(e => e[0] === k)){ base.push([k, act[k].n, {}, 0]); sinHistorial.push(act[k].n); } });
+  const filas = base.map(([k, n, hist, pjPrev]) => {
+    const a = act[k] || {pts:0, pj:0};
+    const vals = C.años.map(y => y === 2026 ? a.pts : (hist[y] || 0));
+    const pts = vals.reduce((x, y) => x + y, 0), pj = pjPrev + a.pj;
+    return {k, n, vals, pts, pj, pts26:a.pts, prom:pj ? pts / pj : 0};
+  }).sort((x, y) => +y.prom.toFixed(6) - +x.prom.toFixed(6) || y.pts26 - x.pts26 || x.n.localeCompare(y.n));
+  marcar(filas, REGLAS[slug]?.promedios || []);
+  return {filas, años:C.años, sinHistorial};
+}
+
+function htmlPromedios(slug, filas26){
+  const P = tablaPromedios(slug, filas26);
+  const th = (sig, t) => `<th scope="col"><abbr title="${t}">${sig}</abbr></th>`;
+  const ley = [], vistos = {};
+  P.filas.forEach(f => { if(f.nota && !vistos[f.nota.d]){ vistos[f.nota.d] = 1; ley.push(f.nota); } });
+  const desde = Math.min(...P.años);
+  return `<section class="zona" aria-label="Tabla de promedios"><h3>Promedios - Descenso</h3><div class="tw"><table class="gt">
+    <caption class="sr">Tabla de promedios para el descenso</caption><thead><tr>
+    ${th('#', 'Posición')}<th scope="col">Equipos</th>${th('Prom', 'Promedio de puntos por partido')}${th('Pts', 'Puntos')}${th('PJ', 'Partidos jugados')}
+    ${P.años.map(y => th(String(y).slice(2), 'Puntos en ' + y)).join('')}
+    </tr></thead><tbody>` +
+    P.filas.map((f, i) => `<tr><td><span class="pos"${f.nota ? ` style="background:${color(f.nota.c)};color:${tinta(f.nota.c)}"` : ''}>${i + 1}</span>${f.nota ? `<span class="sr"> (${esc(f.nota.d)})</span>` : ''}</td>
+      <td><span class="nom">${escudo(slug, f.n)}<span>${esc(f.n)}</span></span></td><td class="pt">${f.prom.toFixed(3)}</td><td>${f.pts}</td><td>${f.pj}</td>${f.vals.map(v => `<td>${v}</td>`).join('')}</tr>`).join('') +
+    `</tbody></table></div>` +
+    (ley.length ? `<div class="zpie">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '') + `</section>` +
+    `<p class="nota">Promedio = puntos / partidos jugados desde ${desde} hasta 2026. Los equipos ascendidos cuentan solo las temporadas que jugaron en primera. Si hay empate, desempata el puntaje de 2026.</p>` +
+    (P.sinHistorial.length ? `<p class="nota" role="status">Sin historial cargado (solo cuenta 2026): ${P.sinHistorial.map(esc).join(', ')}.</p>` : '');
+}
+
+// Liga colombiana: Apertura y Clausura (todos contra todos de 19 fechas) y la anual, que suma los dos.
+const COL = {
+  ventanas: {apertura: ['2026-01-01T00:00Z', '2026-07-01T00:00Z'], clausura: ['2026-07-01T00:00Z', null]},
+  nombres: Object.fromEntries(PROM['col.1'].equipos.map(e => [e[0], e[1]]))
+};
+function tablaCol(partidos, torneo){
+  const [desde, hasta] = COL.ventanas[torneo];
+  const nueva = (k, n) => ({k, n, pj:0, g:0, e:0, p:0, gf:0, gc:0});
+  const filas = {}, vistos = new Set();
+  Object.keys(COL.nombres).forEach(k => filas[k] = nueva(k, COL.nombres[k]));
+  [...partidos].sort(porFecha).forEach(p => {
+    const f = p.fecha || '';
+    if(!p.h || !p.v || f < desde || (hasta && f >= hasta)) return;
+    const kh = claveCol(p.h), kv = claveCol(p.v);
+    if(kh === kv) return;
+    if(p.estado === 'post' && !p.completo) return;        // suspendido o postergado: cuenta cuando se juegue
+    const par = [kh, kv].sort().join('|');
+    if(vistos.has(par)) return;                            // un solo partido por cruce: así no entran playoffs ni cuadrangulares
+    vistos.add(par);
+    const H = filas[kh] = filas[kh] || nueva(kh, p.h), V = filas[kv] = filas[kv] || nueva(kv, p.v);
+    if(!terminado(p)) return;
+    const a = +p.gl, b = +p.gv;
+    H.pj++; V.pj++; H.gf += a; H.gc += b; V.gf += b; V.gc += a;
+    if(a > b){ H.g++; V.p++; } else if(a < b){ V.g++; H.p++; } else { H.e++; V.e++; }
+  });
+  const forma = formaPorClave(partidos, claveCol);
+  return Object.values(filas).map(f => ({...f, dg:f.gf - f.gc, pts:f.g * 3 + f.e, ult:forma[f.k] || []}))
+    .sort((x, y) => y.pts - x.pts || y.dg - x.dg || y.gf - x.gf || x.n.localeCompare(y.n));
+}
+function anualCol(ps){
+  const total = {};
+  ['apertura', 'clausura'].forEach(t => tablaCol(ps, t).forEach(f => {
+    const x = total[f.k] = total[f.k] || {k:f.k, n:f.n, pj:0, g:0, e:0, p:0, gf:0, gc:0, ult:f.ult};
+    ['pj', 'g', 'e', 'p', 'gf', 'gc'].forEach(c => x[c] += f[c]);
+  }));
+  return Object.values(total).map(f => ({...f, dg:f.gf - f.gc, pts:f.g * 3 + f.e}))
+    .sort((x, y) => y.pts - x.pts || y.dg - x.dg || y.gf - x.gf || x.n.localeCompare(y.n));
+}
+
+async function vistaCol(D){
+  const EV = await partidosEnVivo(D, 'col.1'), ps = EV.ps;
+  const opciones = [['apertura', 'Torneo Apertura'], ['clausura', 'Torneo Clausura'], ['anual', 'Tabla Anual'], ['promedios', 'Tabla de promedios']];
+  if(!opciones.some(o => o[0] === S.sub)) S.sub = 'clausura';
+  let h = `<div class="seg chico" role="group" aria-label="Tipo de tabla">` + opciones.map(([k, t]) =>
+    `<button data-k="s-${k}" aria-pressed="${S.sub === k}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
+  if(S.sub === 'apertura' || S.sub === 'clausura'){
+    const f = tablaCol(ps, S.sub);
+    marcar(f, REGLAS['col.1'][S.sub]);
+    h += htmlTabla(f, S.sub === 'apertura' ? 'Torneo Apertura' : 'Torneo Clausura') +
+      `<p class="nota">19 fechas, todos contra todos. Los ocho primeros clasifican a ${S.sub === 'apertura' ? 'los playoffs (cuartos de final)' : 'los cuadrangulares semifinales'}.</p>`;
+  } else if(S.sub === 'anual'){
+    h += htmlTabla(anualCol(ps), 'Tabla Anual') + '<p class="nota">Suma la fase de todos contra todos del Apertura y del Clausura (tabla de reclasificación). Los playoffs y cuadrangulares no cuentan.</p>';
+  } else {
+    h += htmlPromedios('col.1', anualCol(ps));
+  }
+  return {h, ps};
+}
+
 async function vistaUru(D){
   const EV = await partidosEnVivo(D, 'uru.1'), ps = EV.ps;
   FORMA = formaPorEquipo(ps);
@@ -545,7 +692,7 @@ async function vistaUru(D){
     const aj = Object.keys(URU.ajustes.anual).map(k => `${URU.nombres[k]} ${URU.ajustes.anual[k][0]} (${URU.ajustes.anual[k][1].toLowerCase()})`).join('; ');
     h += htmlTabla(anualUru(ps), 'Tabla Anual') + `<p class="nota">Suma Apertura, Intermedio y Clausura. Las finales no cuentan.${aj ? ' Puntos de menos: ' + aj + '.' : ''}</p>`;
   } else {
-    h += '<p class="nota" role="status">La tabla de promedios se está desarrollando y estará disponible más adelante.</p>';
+    h += htmlPromedios('uru.1', anualUru(ps));
   }
   return {h, ps};
 }
@@ -594,16 +741,6 @@ async function partidosEnVivo(D, slug){
 async function anualEnVivo(D, slug){
   const r = await partidosEnVivo(D, slug);
   return r.vivo ? tablaAnual(r.ps, slug) : null;
-}
-
-function tablaPromedios(partidos, slug){
-  const base = tablaPeriodo(partidos, '2026-01-01T00:00:00Z');
-  const filas = base.map(f => {
-    const prom = f.pj ? f.pts / f.pj : 0;
-    return {...f, prom:+prom.toFixed(3)};
-  }).sort((a,b) => b.prom-a.prom || b.pts-a.pts || b.dg-a.dg);
-  marcar(filas, REGLAS[slug]?.promedios || []);
-  return filas;
 }
 
 // Vuelve a dibujar solo: rápido si hay partidos en juego, despacio si no
@@ -711,7 +848,7 @@ function abrirMenu(abrir){
 }
 function elegirLiga(i){
   S.liga = i;
-  S.sub = LIGAS[i].espn === 'arg.1' ? 'clausura' : LIGAS[i].espn === 'uru.1' ? 'apertura' : 'torneo';
+  S.sub = ['arg.1', 'col.1'].includes(LIGAS[i].espn) ? 'clausura' : LIGAS[i].espn === 'uru.1' ? 'apertura' : 'torneo';
   abrirMenu(false); render();
   document.getElementById('ligaBtn').focus();
 }
@@ -778,6 +915,9 @@ async function cargar(cab, tk, slug){
       } else if(slug === 'uru.1'){
         const U = await vistaUru(D);
         h += U.h; activo = hayActividad(U.ps);
+      } else if(slug === 'col.1'){
+        const U = await vistaCol(D);
+        h += U.h; activo = hayActividad(U.ps);
       } else {
       const tv = await vivoTabla(slug);
       const EV = await partidosEnVivo(D, slug), PS = EV.ps;
@@ -789,7 +929,6 @@ async function cargar(cab, tk, slug){
         ? tablasPorZonas(PS, D.tabla, slug, '2026-01-01T00:00:00Z', '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0)
         : null;
       const anual = D.anual ? (EV.vivo ? tablaAnual(PS, slug) : D.anual) : null;
-      const promedios = ['arg.1','uru.1'].includes(slug) ? tablaPromedios(PS, slug) : null;
       if(apertura) marcar(apertura, REGLAS[slug]?.apertura || []);
       if(intermedio) marcar(intermedio, REGLAS[slug]?.intermedio || []);
       if(clausura) marcar(clausura, REGLAS[slug]?.clausura || []);
@@ -812,7 +951,7 @@ async function cargar(cab, tk, slug){
           if(D.clausura) opciones.push(['clausura','Tabla del Clausura']);
         }
         if(D.anual) opciones.push(['anual','Tabla Anual']);
-        if(promedios) opciones.push(['promedios','Tabla de promedios']);
+        if(slug === 'arg.1') opciones.push(['promedios','Tabla de promedios']);
         h += `<div class="seg chico" role="group" aria-label="Tipo de tabla">` + opciones.map(([k,t]) =>
           `<button data-k="s-${k}" aria-pressed="${S.sub === k}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
       }
@@ -846,8 +985,8 @@ async function cargar(cab, tk, slug){
           * Los cupos se corren si algún equipo ya clasificó por otra vía (campeones, Copa Argentina). También desciende el último
           de la tabla de promedios; si es el mismo equipo, baja el anteúltimo de la anual.</p>` :
           '<p class="nota">Suma los puntos del Apertura y del Clausura de la temporada.</p>');
-      } else if(S.sub === 'promedios' && promedios){
-        h += '<p class="nota" role="status">La tabla de promedios se está desarrollando y estará disponible más adelante.</p>';
+      } else if(slug === 'arg.1' && S.sub === 'promedios'){
+        h += htmlPromedios('arg.1', tablaAnual(PS, 'arg.1'));
       } else {
         h += (tv || D.tabla).map(g => htmlTabla(g.filas, g.nombre || 'Posiciones', !!g.nombre)).join('');
       }

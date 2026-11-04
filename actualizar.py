@@ -517,7 +517,7 @@ def actualizar(slug, inicio, historial, forzar):
         nuevo['apertura'] = tablas_por_zonas(partidos, filas, slug, hasta='2026-07-01T00:00:00Z', limite_por_equipo=16)
         nuevo['clausura'] = tablas_por_zonas(partidos, filas, slug, desde='2026-07-01T00:00:00Z', limite_por_equipo=16)
         nuevo['anual'] = tabla_anual(partidos, slug)
-        nuevo['promedios'] = tabla_promedios(partidos, slug)
+        # los promedios (con las temporadas anteriores) los calcula index.html
     if slug == 'uru.1':
         nuevo.update(datos_uru(partidos))
 
