@@ -333,8 +333,9 @@ function regEscudo(slug, equipo){
   m[n] = u;
   if(CLAVE_LIGA[slug]) m['@' + CLAVE_LIGA[slug](n)] = u;   // las tablas usan nombres cortos ("Defensor Sp.", "Boca Jrs.")
 }
-function escudo(slug, nombre){
-  const m = ESCUDOS[slug] || {}, u = m[nombre] || (CLAVE_LIGA[slug] ? m['@' + CLAVE_LIGA[slug](nombre)] : '');
+function escudo(slug, nombre, k){
+  const m = ESCUDOS[slug] || {}, clave = k || (CLAVE_LIGA[slug] ? CLAVE_LIGA[slug](nombre) : '');
+  const u = (k ? '' : m[nombre]) || (clave ? m['@' + clave] : '') || m[nombre] || '';   // con clave propia (promedios, Uruguay, Colombia) manda la clave
   const ini = String(nombre || '?').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\(.*?\)/g, '').split(/\s+/).filter(Boolean)
     .map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
   let hue = 0; for(const c of String(nombre)) hue = (hue * 31 + c.charCodeAt(0)) % 360;
@@ -572,8 +573,8 @@ const mkClave = lista => n => {
   const c = lista.find(([k, re]) => re.test(t));
   return c ? c[0] : t;
 };
-const claveArg = mkClave([['central_cordoba', /central cordoba/], ['rosario', /rosario/], ['independiente_riv', /independiente rivadavia/],
-  ['independiente', /independiente/], ['estudiantes_rc', /rio cuarto/], ['estudiantes', /estudiantes/], ['gimnasia_m', /mendoza/],
+const claveArg = mkClave([['central_cordoba', /central cordoba/], ['rosario', /rosario|^central$/], ['independiente_riv', /independiente (rivadavia|riv)/],
+  ['independiente', /independiente/], ['estudiantes_rc', /rio cuarto|estudiantes rc/], ['estudiantes', /estudiantes/], ['gimnasia_m', /mendoza|\(m\)/],
   ['gimnasia', /gimnasia/], ['boca', /boca/], ['river', /river/], ['argentinos', /argentinos/], ['velez', /velez/], ['racing', /racing/],
   ['lanus', /lanus/], ['huracan', /huracan/], ['talleres', /talleres/], ['defensa', /defensa/], ['barracas', /barracas/],
   ['instituto', /instituto/], ['union', /union/], ['san_lorenzo', /san lorenzo/], ['belgrano', /belgrano/], ['platense', /platense/],
@@ -642,7 +643,7 @@ function htmlPromedios(slug, filas26){
     ${P.años.map(y => th(String(y).slice(2), 'Puntos en ' + y)).join('')}
     </tr></thead><tbody>` +
     P.filas.map((f, i) => `<tr><td><span class="pos"${f.nota ? ` style="background:${color(f.nota.c)};color:${tinta(f.nota.c)}"` : ''}>${i + 1}</span>${f.nota ? `<span class="sr"> (${esc(f.nota.d)})</span>` : ''}</td>
-      <th scope="row"><span class="nom">${escudo(slug, f.n)}<span>${esc(f.n)}</span></span></th><td class="pt">${f.prom.toFixed(3)}</td><td>${f.pts}</td><td>${f.pj}</td>${f.vals.map(v => `<td>${v}</td>`).join('')}</tr>`).join('') +
+      <th scope="row"><span class="nom">${escudo(slug, f.n, f.k)}<span>${esc(f.n)}</span></span></th><td class="pt">${f.prom.toFixed(3)}</td><td>${f.pts}</td><td>${f.pj}</td>${f.vals.map(v => `<td>${v}</td>`).join('')}</tr>`).join('') +
     `</tbody></table></div>` +
     (ley.length ? `<div class="zpie">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '') + `</section>` +
     `<p class="nota">Promedio = puntos / partidos jugados desde ${desde} hasta 2026. Los equipos ascendidos cuentan solo las temporadas que jugaron en primera. Si hay empate, desempata el puntaje de 2026.</p>` +
@@ -953,7 +954,7 @@ function htmlTabla(filas, titulo, mostrarTitulo = false){
     ${th('+/-', 'Diferencia de gol')}${th('G', 'Ganados')}${th('E', 'Empatados')}${th('P', 'Perdidos')}${conProm ? th('Prom.', 'Promedio de puntos por partido') : ''}${conUlt ? th('Últimas', 'Últimos 5 resultados, el más reciente a la derecha') : ''}
     </tr></thead><tbody>` +
     filas.map((f, i) => `<tr><td><span class="pos"${f.nota ? ` style="background:${color(f.nota.c)};color:${tinta(f.nota.c)}"` : ''}>${i + 1}</span>${f.nota ? `<span class="sr"> (${esc(f.nota.d)})</span>` : ''}</td>
-      <th scope="row"><span class="nom">${escudo(LIGAS[S.liga].espn, f.n)}<span>${esc(f.n)}</span></span></th><td class="pt">${f.pts}</td><td>${f.pj}</td><td>${f.gf}:${f.gc}</td><td>${f.dg}</td><td>${f.g}</td><td>${f.e}</td><td>${f.p}</td>
+      <th scope="row"><span class="nom">${escudo(LIGAS[S.liga].espn, f.n, f.k)}<span>${esc(f.n)}</span></span></th><td class="pt">${f.pts}</td><td>${f.pj}</td><td>${f.gf}:${f.gc}</td><td>${f.dg}</td><td>${f.g}</td><td>${f.e}</td><td>${f.p}</td>
       ${conProm ? `<td>${f.prom != null ? f.prom.toFixed(3) : ''}</td>` : ''}${conUlt ? `<td class="ult">${ult(f).map(r => `<span class="fm ${r}" title="${nombres[r]}">${r}</span>`).join('')}</td>` : ''}</tr>`).join('') +
     `</tbody></table></div>` +
     (ley.length ? `<div class="zpie">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '') +
