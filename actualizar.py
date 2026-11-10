@@ -33,6 +33,11 @@ LIGAS = {
     'fra.1': date(2026, 8, 1),    # Ligue 1
     'conmebol.libertadores': date(2026, 2, 1),  # CONMEBOL Libertadores
     'conmebol.sudamericana': date(2026, 2, 1),  # CONMEBOL Sudamericana
+    'arg.copa_lpf': date(2026, 1, 1),     # Copa de la Liga Profesional
+    'arg.supercopa': date(2026, 1, 1),    # Supercopa Argentina
+    'fifa.friendly': date(2026, 1, 1),    # Amistosos internacionales (selecciones)
+    'fifa.world': date(2026, 6, 1),       # Copa del Mundo 2026
+    'uefa.nations': date(2026, 9, 1),     # UEFA Nations League
     'uefa.champions': date(2026, 9, 1),   # UEFA Champions League
     'uefa.europa': date(2026, 9, 1),      # UEFA Europa League
 }

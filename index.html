@@ -2,17 +2,19 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Chomiedos: resultados y posiciones de fútbol</title>
 <meta name="description" content="Resultados, goles y tablas de posiciones de fútbol argentino, brasileño, uruguayo y europeo.">
 <meta name="theme-color" content="#0e6b3d">
+<meta name="color-scheme" content="light dark">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%230e6b3d'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='23'%20fill='%23fff'/%3E%3Cpath%20d='M32%2020.5l9.5%206.9-3.6%2011.2H26.1l-3.6-11.2z'%20fill='%230e6b3d'/%3E%3Cpath%20d='M32%2020.5V9.5M41.5%2027.4l10.2-3.3M37.9%2038.6l6.3%208.7M26.1%2038.6l-6.3%208.7M22.5%2027.4l-10.2-3.3'%20stroke='%230e6b3d'%20stroke-width='3'%20stroke-linecap='round'%20fill='none'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#e7efe9;--panel:#fff;--ink:#0f2418;--mute:#566a5d;--line:#d2e0d6;--acc:#12804a;--onacc:#fff;--hd:#0e6b3d;--hd2:#0b5a33;--live:#c62828;--tint:#eef6f1}
-@media(prefers-color-scheme:dark){:root{--bg:#0b1410;--panel:#13201a;--ink:#e8f3ec;--mute:#9bb3a5;--line:#243a2d;--acc:#2fcf7a;--onacc:#06220f;--hd:#0b5a33;--hd2:#08452a;--live:#ff7b7b;--tint:#182a21}}
+:root{--bg:#e7efe9;--panel:#fff;--ink:#0f2418;--mute:#566a5d;--line:#d2e0d6;--acc:#12804a;--onacc:#fff;--hd:#0e6b3d;--hd2:#0b5a33;--live:#c62828;--tint:#eef6f1;--warn:#9a5200}
+@media(prefers-color-scheme:dark){:root{--bg:#0b1410;--panel:#13201a;--ink:#e8f3ec;--mute:#9bb3a5;--line:#243a2d;--acc:#2fcf7a;--onacc:#06220f;--hd:#0b5a33;--hd2:#08452a;--live:#ff7b7b;--tint:#182a21;--warn:#ffb454}}
 *{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;color-scheme:light dark}
 body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.45 Barlow,system-ui,'Segoe UI',sans-serif}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .skip{position:absolute;left:12px;top:-70px;z-index:30;background:var(--acc);color:var(--onacc);padding:10px 16px;border-radius:8px;font-weight:500}
@@ -22,11 +24,11 @@ abbr{text-decoration:none}
 .hero{position:relative;overflow:hidden;color:#fff;background:repeating-linear-gradient(90deg,var(--hd) 0 56px,var(--hd2) 56px 112px)}
 .hero::before{content:"";position:absolute;right:92px;top:0;bottom:0;border-right:3px solid rgba(255,255,255,.2)}
 .hero::after{content:"";position:absolute;right:-8px;top:50%;width:190px;height:190px;margin-top:-95px;border:3px solid rgba(255,255,255,.2);border-radius:50%}
-.hero-in{position:relative;z-index:1;max-width:760px;margin:auto;padding:26px 16px;display:flex;align-items:center;gap:16px}
+.hero-in{position:relative;z-index:1;max-width:760px;margin:auto;padding:26px max(16px,env(safe-area-inset-right)) 26px max(16px,env(safe-area-inset-left));display:flex;align-items:center;gap:16px}
 .logo{width:68px;height:68px;flex:none;filter:drop-shadow(0 3px 5px rgba(0,0,0,.35))}
 h1{margin:0;font:italic 700 clamp(44px,11vw,68px)/.95 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.5px;text-shadow:0 3px 0 rgba(0,0,0,.25)}
 .hero p{margin:6px 0 0;font-size:18px}
-.wrap{max-width:760px;margin:0 auto;padding:16px 12px 48px}
+.wrap{max-width:760px;margin:0 auto;padding:16px max(12px,env(safe-area-inset-right)) 48px max(12px,env(safe-area-inset-left))}
 .liga-menu{position:relative;margin-bottom:14px}
 .liga-btn{width:100%;min-height:58px;display:flex;align-items:center;gap:12px;background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:14px;padding:8px 16px;font:600 24px 'Barlow Condensed',sans-serif;text-align:left;cursor:pointer}
 .liga-btn:hover{border-color:var(--acc)}
@@ -34,7 +36,7 @@ h1{margin:0;font:italic 700 clamp(44px,11vw,68px)/.95 'Barlow Condensed','Arial 
 .nom{flex:1}
 .flecha{width:12px;height:12px;margin:-5px 4px 0;border-right:3px solid currentColor;border-bottom:3px solid currentColor;transform:rotate(45deg);transition:transform .2s,margin .2s}
 .liga-btn[aria-expanded=true] .flecha{transform:rotate(-135deg);margin-top:5px}
-.liga-lista{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);max-height:70vh;overflow:auto;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:8px;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+.liga-lista{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);max-height:70vh;max-height:70dvh;overflow:auto;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:8px;box-shadow:0 12px 30px rgba(0,0,0,.22)}
 .grupo{margin:10px 10px 4px;font:600 15px Barlow,sans-serif;color:var(--mute)}
 .op{display:flex;align-items:center;gap:12px;width:100%;min-height:50px;border:0;border-radius:10px;background:none;color:var(--ink);padding:6px 10px;font:500 19px Barlow,sans-serif;text-align:left;cursor:pointer}
 .op:hover,.op.on{background:var(--tint)}
@@ -46,8 +48,8 @@ main:focus{outline:none}
 .seg button{flex:1;min-height:50px;border:2px solid var(--line);border-radius:12px;background:none;color:var(--ink);font:600 21px 'Barlow Condensed',sans-serif;cursor:pointer}
 .seg button:hover{border-color:var(--acc)}
 .seg button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:var(--onacc)}
-.seg.chico{border:0;padding:12px 12px 0}
-.seg.chico button{min-height:44px;font:500 17px Barlow,sans-serif;border-radius:999px}
+.seg.chico{border:0;padding:12px 12px 0;flex-wrap:wrap}
+.seg.chico button{flex:1 1 auto;min-height:44px;padding:0 14px;font:500 17px Barlow,sans-serif;border-radius:999px}
 .fecha{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--tint);border-bottom:1px solid var(--line)}
 .fecha div{text-align:center}
 .fecha h3{margin:0;font:700 30px/1.1 'Barlow Condensed',sans-serif}
@@ -68,7 +70,9 @@ main:focus{outline:none}
 .esc{width:24px;height:24px;object-fit:contain;flex:none}
 .esc.ini{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;font:700 11px 'Barlow Condensed',sans-serif;letter-spacing:.3px}
 .gt .esc{width:20px;height:20px}
-.gt td:nth-child(2) .nom{display:flex;align-items:center;gap:8px}
+.gt .nom{display:flex;align-items:center;gap:8px}
+.gt tbody th{color:inherit;font-size:inherit;font-weight:500;border:0;text-align:left;white-space:normal;min-width:92px;width:auto;padding:7px 4px 7px 8px}
+.gt tbody th .esc{flex:none}
 .sc{text-align:center;font:700 38px/1 'Barlow Condensed',sans-serif;letter-spacing:1px}
 .sc.next{font-size:25px;color:var(--mute);font-weight:600}
 .est{display:block;white-space:nowrap;margin-top:5px;font:500 14px Barlow,sans-serif;letter-spacing:0;color:var(--mute)}
@@ -89,12 +93,13 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 .ley i{display:inline-block;width:12px;height:12px;margin-right:7px;border-radius:3px}
 .nota{margin:0;padding:12px 14px;color:var(--mute);font-size:15px}
 .sec{margin:22px 14px 8px;font:700 26px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.5px}
+.lg{margin:0;padding:14px 14px 4px;color:var(--mute);font:600 16px Barlow,sans-serif;letter-spacing:.2px}
 .llave-nav{display:flex;gap:8px;overflow-x:auto;padding:4px 12px 10px}
-.llave-nav button{flex:none;min-height:36px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:none;color:var(--ink);font:600 17px 'Barlow Condensed',sans-serif;cursor:pointer}
+.llave-nav button{flex:none;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:none;color:var(--ink);font:600 17px 'Barlow Condensed',sans-serif;cursor:pointer}
 .llave-nav button:hover{border-color:var(--acc)}
 .llave{position:relative;display:flex;gap:14px;overflow-x:auto;padding:4px 12px 18px;scroll-snap-type:x proximity}
 .rd{flex:0 0 236px;display:flex;flex-direction:column;scroll-snap-align:start}
-.rd h4{margin:0 0 8px;font:700 21px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.4px}
+.rd h3{margin:0 0 8px;font:700 21px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.4px}
 .lazos{display:flex;flex-direction:column;justify-content:space-around;gap:10px;flex:1}
 .lazo{border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
 .lz{display:flex;align-items:center;gap:8px;padding:8px 10px}
@@ -106,20 +111,20 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 .lz .tg b{min-width:16px;text-align:right}
 .lz.w .nm span,.lz.w .tg b{font-weight:700}
 .lz.perd{opacity:.6}
-.lzpie{padding:5px 10px;border-top:1px solid var(--line);font-size:13px;color:var(--mute)}
+.lzpie{padding:6px 10px;border-top:1px solid var(--line);font-size:14px;color:var(--mute)}
 .campeon{display:flex;align-items:center;gap:10px;margin:4px 12px 12px;padding:10px 14px;border:1px solid var(--acc);border-radius:12px;font:700 22px 'Barlow Condensed',sans-serif;text-transform:uppercase}
 .campeon small{display:block;font:500 14px 'Barlow Condensed',sans-serif;color:var(--mute);letter-spacing:.4px}
-.pie{max-width:760px;margin:0 auto;padding:0 12px 40px;text-align:center;color:var(--mute);font-size:15px}
-.lnk{background:none;border:0;padding:4px 2px;color:var(--acc);font:inherit;text-decoration:underline;cursor:pointer}
-dialog.modal{width:min(92vw,560px);max-height:88vh;padding:0;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden}
+.pie{max-width:760px;margin:0 auto;padding:0 12px max(40px,env(safe-area-inset-bottom));text-align:center;color:var(--mute);font-size:15px}
+.lnk{display:inline-flex;align-items:center;min-height:44px;background:none;border:0;padding:0 8px;color:var(--acc);font:inherit;text-decoration:underline;cursor:pointer}
+dialog.modal{width:min(92vw,560px);max-height:88vh;max-height:88dvh;padding:0;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden}
 dialog.modal[open]{display:flex}
 dialog.modal::backdrop{background:rgba(0,0,0,.55)}
-.modal-in{padding:20px 20px 16px;overflow:auto;max-height:88vh;width:100%}
+.modal-in{padding:20px 20px 16px;overflow:auto;max-height:88vh;max-height:88dvh;width:100%}
 .modal h2{margin:0 0 10px;font:700 30px/1.05 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.3px}
 .modal h3{margin:16px 0 2px;font:700 20px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.3px}
 .modal p,.modal li{margin:6px 0;font-size:16px}
 .modal ul{margin:6px 0;padding-left:20px}
-.modal .fecha{color:var(--mute);font-size:14px}
+.modal .pie-aviso{margin:6px 0;color:var(--mute);font-size:15px}
 .modal .acc{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
 .modal .acc button{min-height:46px;padding:0 18px;border:2px solid var(--line);border-radius:12px;background:none;color:var(--ink);font:600 20px 'Barlow Condensed',sans-serif;cursor:pointer}
 .modal .acc button:hover{border-color:var(--acc)}
@@ -130,18 +135,21 @@ dialog.modal::backdrop{background:rgba(0,0,0,.55)}
 .zona h3 + .tw{border-top:1px solid var(--line)}
 .gt{font-size:15px}
 .gt th,.gt td{padding:7px 4px;text-align:center;white-space:nowrap}
-.gt th{font-size:13px}
+.gt th{font-size:14px}
 .gt td:nth-child(2),.gt th:nth-child(2){text-align:left;width:auto;white-space:normal;min-width:92px;padding-left:8px}
 .gt td:last-child{font:inherit;color:inherit}
 .gt td.pt{font-weight:700}
 .gt .pos{display:inline-block;min-width:24px;line-height:24px;border-radius:4px;font-weight:700}
 .gt td.ult{padding-right:8px}
 .fm{display:inline-block;width:19px;height:19px;line-height:19px;margin:0 1.5px;border-radius:4px;font:700 12px 'Barlow Condensed',sans-serif;color:#fff;text-align:center}
-.fm.V{background:#5b9f45}.fm.E{background:#f1b60b;color:#2a2200}.fm.D{background:#e0463c}
+.fm.V{background:#2e7d32}.fm.E{background:#f1b60b;color:#2a2200}.fm.D{background:#c62828}
 .zpie{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 18px;padding:9px 14px;border-top:1px solid var(--line);font-size:14px;color:var(--mute)}
 .zpie i{display:inline-block;width:10px;height:10px;margin-right:7px;border-radius:50%}
-.zpie b{color:#e8890c;font-weight:700}
+.zpie b{color:var(--warn);font-weight:700}
+@media(hover:hover){.gt tbody tr:hover{background:color-mix(in srgb,var(--acc) 13%,transparent)}.mw:hover{background:color-mix(in srgb,var(--acc) 6%,transparent)}}
+@media(min-width:960px){.hero-in,.wrap,.pie{max-width:920px}}
 @media(max-width:560px){.gt{font-size:14px}.fm{width:17px;height:17px;line-height:17px;font-size:11px;margin:0 1px}}
+@media(max-width:380px){.m,.g{grid-template-columns:1fr 78px 1fr}.sc{font-size:30px}.eq{font-size:16px;gap:6px}.esc{width:20px;height:20px}.seg button{font-size:19px}.m{padding:14px 10px 8px}}
 @media(max-width:560px){
 .gf{display:none}
 .hero::before,.hero::after{display:none}
@@ -179,7 +187,7 @@ dialog.modal::backdrop{background:rgba(0,0,0,.55)}
     <h2 id="avisoTit">¡Bienvenido a Chomiedos!</h2>
     <p>Esta página está <strong>en desarrollo</strong>: es un proyecto personal y todavía puede tener errores, datos atrasados o cosas que cambian de un día para el otro.</p>
     <p>Si tenés alguna duda, sugerencia o encontrás un error, escribime por Discord: <strong>vxlascoo</strong>.</p>
-    <p class="fecha">Este mensaje se muestra solo la primera vez. Después lo podés volver a ver desde el pie de la página.</p>
+    <p class="pie-aviso">Este mensaje se muestra solo la primera vez. Después lo podés volver a ver desde el pie de la página.</p>
     <div class="acc">
       <button type="button" class="pri" id="avisoOk" autofocus>Entendido</button>
       <button type="button" id="avisoCopiar">Copiar usuario</button>
@@ -191,7 +199,7 @@ dialog.modal::backdrop{background:rgba(0,0,0,.55)}
 <dialog id="privacidad" class="modal" aria-labelledby="privTit">
   <div class="modal-in">
     <h2 id="privTit">Política de privacidad</h2>
-    <p class="fecha">Última actualización: noviembre de 2026</p>
+    <p class="pie-aviso">Última actualización: noviembre de 2026</p>
 
     <h3>Quién hace esta página</h3>
     <p>Chomiedos es un proyecto personal, sin fines comerciales y en desarrollo. Cualquier consulta sobre esta política se puede hacer por Discord: <strong>vxlascoo</strong>.</p>
@@ -234,6 +242,8 @@ const LIGAS = [
   {n:'Liga Profesional de Fútbol', espn:'arg.1', cod:'ARG', g:'Argentina'},
   {n:'Primera Nacional', espn:'arg.2', cod:'ARG', g:'Argentina'},
   {n:'Copa Argentina', espn:'arg.copa', cod:'ARG', g:'Argentina'},
+  {n:'Copa de la Liga', espn:'arg.copa_lpf', cod:'ARG', g:'Argentina'},
+  {n:'Supercopa Argentina', espn:'arg.supercopa', cod:'ARG', g:'Argentina', sinPos:true},
   {n:'Brasileirão', espn:'bra.1', cod:'BRA', g:'Brasil'},
   {n:'Copa de Brasil', espn:'bra.copa_do_brazil', cod:'BRA', g:'Brasil'},
   {n:'Liga AUF Uruguaya', espn:'uru.1', cod:'URU', g:'Uruguay'},
@@ -244,6 +254,9 @@ const LIGAS = [
   {n:'CONMEBOL Sudamericana', espn:'conmebol.sudamericana', cod:'CONMEBOL', g:'Copas internacionales'},
   {n:'UEFA Champions League', espn:'uefa.champions', cod:'UEFA', g:'Copas internacionales'},
   {n:'UEFA Europa League', espn:'uefa.europa', cod:'UEFA', g:'Copas internacionales'},
+  {n:'Amistosos internacionales', espn:'fifa.friendly', cod:'FIFA', g:'Selecciones', sinPos:true},
+  {n:'Copa del Mundo', espn:'fifa.world', cod:'FIFA', g:'Selecciones'},
+  {n:'UEFA Nations League', espn:'uefa.nations', cod:'UEFA', g:'Selecciones'},
 
   {n:'Premier League', espn:'eng.1', cod:'ING', g:'Europa'},
   {n:'LaLiga', espn:'esp.1', cod:'ESP', g:'Europa'},
@@ -258,9 +271,10 @@ const PROXY = 'https://chomiedos.ginozuccotti2009.workers.dev';
 
 // Marcas de posiciones para las tablas que ESPN no marca: [desde, hasta, texto, color].
 // Los negativos cuentan desde el final (-1 = último). Es la misma lista que tiene actualizar.py.
-const COPAS = ['arg.copa','uru.copa_auf_uruguay','bra.copa_do_brazil','conmebol.libertadores','conmebol.sudamericana','uefa.champions','uefa.europa'];
+const COPAS = ['arg.copa','uru.copa_auf_uruguay','bra.copa_do_brazil','conmebol.libertadores','conmebol.sudamericana','uefa.champions','uefa.europa','arg.copa_lpf','arg.supercopa','fifa.world','uefa.nations'];
 const REGLAS = {
   // Libertadores: las mismas reglas en todos los grupos; reemplazan los textos que manda ESPN (que solo marca algunos grupos)
+  'fifa.world': {reemplazar: true, torneo: [[1, 2, 'Clasifican a dieciseisavos de final', '#8fdcb4'], [3, 3, 'Los mejores terceros también clasifican', '#b7bfd1']]},
   'conmebol.sudamericana': {reemplazar: true, torneo: [[1, 1, 'Clasifica a octavos de final', '#8fdcb4'], [2, 2, 'Clasifica a los playoffs de octavos', '#b7bfd1']]},
   'conmebol.libertadores': {reemplazar: true, torneo: [[1, 2, 'Clasifican a octavos de final', '#8fdcb4'], [3, 3, 'Clasifica a los playoffs de la Sudamericana', '#b7bfd1']]},
   'arg.1': {
@@ -295,7 +309,7 @@ const REGLAS = {
   }
 };
 
-const S = {liga:0, vista:'inicio', sub:'clausura', dia:{}, inicioDia:null, tk:0}; // dia: día elegido en cada liga
+const S = {liga:0, vista:'inicio', sub:'clausura', fase:'liga', dia:{}, inicioDia:null, tk:0}; // dia: día elegido en cada liga
 const cache = {};
 const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const color = c => /^#[0-9a-f]{6}$/i.test(c) ? c : '#888888';
@@ -622,13 +636,13 @@ function htmlPromedios(slug, filas26){
   const ley = [], vistos = {};
   P.filas.forEach(f => { if(f.nota && !vistos[f.nota.d]){ vistos[f.nota.d] = 1; ley.push(f.nota); } });
   const desde = Math.min(...P.años);
-  return `<section class="zona" aria-label="Tabla de promedios"><h3>Promedios - Descenso</h3><div class="tw"><table class="gt">
+  return `<section class="zona" aria-label="Tabla de promedios"><h3>Promedios - Descenso</h3><div class="tw" tabindex="0" role="region" aria-label="Tabla de promedios (se desplaza hacia los costados)"><table class="gt">
     <caption class="sr">Tabla de promedios para el descenso</caption><thead><tr>
     ${th('#', 'Posición')}<th scope="col">Equipos</th>${th('Prom', 'Promedio de puntos por partido')}${th('Pts', 'Puntos')}${th('PJ', 'Partidos jugados')}
     ${P.años.map(y => th(String(y).slice(2), 'Puntos en ' + y)).join('')}
     </tr></thead><tbody>` +
     P.filas.map((f, i) => `<tr><td><span class="pos"${f.nota ? ` style="background:${color(f.nota.c)};color:${tinta(f.nota.c)}"` : ''}>${i + 1}</span>${f.nota ? `<span class="sr"> (${esc(f.nota.d)})</span>` : ''}</td>
-      <td><span class="nom">${escudo(slug, f.n)}<span>${esc(f.n)}</span></span></td><td class="pt">${f.prom.toFixed(3)}</td><td>${f.pts}</td><td>${f.pj}</td>${f.vals.map(v => `<td>${v}</td>`).join('')}</tr>`).join('') +
+      <th scope="row"><span class="nom">${escudo(slug, f.n)}<span>${esc(f.n)}</span></span></th><td class="pt">${f.prom.toFixed(3)}</td><td>${f.pts}</td><td>${f.pj}</td>${f.vals.map(v => `<td>${v}</td>`).join('')}</tr>`).join('') +
     `</tbody></table></div>` +
     (ley.length ? `<div class="zpie">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '') + `</section>` +
     `<p class="nota">Promedio = puntos / partidos jugados desde ${desde} hasta 2026. Los equipos ascendidos cuentan solo las temporadas que jugaron en primera. Si hay empate, desempata el puntaje de 2026.</p>` +
@@ -698,7 +712,7 @@ async function vistaCol(D){
 /* ===== Cuadros de las copas (fases eliminatorias) =====
    Se arman con los partidos de cada ronda: los partidos entre los mismos dos equipos son un cruce (ida y vuelta).
    Gana el que suma más goles; si empatan, el que ganó por penales. Para sumar otra copa, agregarla a CUADROS. */
-const CUADROS = ['arg.copa', 'conmebol.libertadores', 'conmebol.sudamericana'];
+const CUADROS = ['arg.copa', 'conmebol.libertadores', 'conmebol.sudamericana', 'fifa.world'];
 const IDA_VUELTA = {'conmebol.libertadores': ronda => !/^final$/i.test(ronda), 'conmebol.sudamericana': ronda => !/^final$/i.test(ronda)};   // rondas a doble partido, aunque todavía no esté la vuelta cargada
 const RE_FASE_GRUPOS = /grupo|group|fase de liga|league phase/i;
 const RE_ELIM = /final|octavos|cuartos|semi|dieciseis|treintaidos|round of|quarter|play-?offs?/i;   // rondas eliminatorias (para ligas que mezclan fase regular y playoffs)
@@ -770,6 +784,11 @@ function htmlLazo(slug, z){
   return `<div class="lazo">${fila(0)}${fila(1)}${pie ? `<div class="lzpie">${esc(pie)}</div>` : ''}</div>`;
 }
 
+function irRonda(i){
+  const quieto = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.getElementById('rd-' + i)?.scrollIntoView({behavior: quieto ? 'auto' : 'smooth', inline: 'start', block: 'nearest'});
+}
+
 function htmlCuadro(slug, ps, opc = {}){
   const rondas = armarCuadro(ps, slug, opc);
   if(!rondas.length) return `<p class="nota" role="status">${opc.vacio || 'Todavía no hay cruces eliminatorios cargados.'}</p>`;
@@ -779,16 +798,22 @@ function htmlCuadro(slug, ps, opc = {}){
   const ultima = rondas[rondas.length - 1], fin = /^final$/i.test(ultima.nombre) && ultima.lazos.length === 1 ? ultima.lazos[0] : null;
   const campeon = fin && fin.ganador != null ? (fin.ganador === 0 ? fin.a : fin.b) : null;
   return (campeon ? `<div class="campeon">${escudo(slug, campeon)}<div><small>Campeón${opc.campeonDe ? ' del ' + esc(opc.campeonDe) : ''}</small>${esc(campeon)}</div></div>` : '') +
-    `<nav class="llave-nav" aria-label="Ir a una ronda">${rondas.map((R, i) => `<button type="button" onclick="document.getElementById('rd-${i}').scrollIntoView({behavior:'smooth',inline:'start',block:'nearest'})">${esc(R.nombre)}</button>`).join('')}</nav>` +
+    `<nav class="llave-nav" aria-label="Ir a una ronda">${rondas.map((R, i) => `<button type="button" onclick="irRonda(${i})">${esc(R.nombre)}</button>`).join('')}</nav>` +
     `<div class="llave" data-k="${esc(slug + (opc.k || ''))}" tabindex="0" role="region" aria-label="Cuadro de eliminatorias">` +
-    rondas.map((R, i) => `<section class="rd" id="rd-${i}" ${i === act ? 'data-act="1"' : ''}><h4>${esc(R.nombre)}</h4><div class="lazos">${R.lazos.map(z => htmlLazo(slug, z)).join('')}</div></section>`).join('') + `</div>` +
+    rondas.map((R, i) => `<section class="rd" id="rd-${i}" ${i === act ? 'data-act="1"' : ''}><h3>${esc(R.nombre)}</h3><div class="lazos">${R.lazos.map(z => htmlLazo(slug, z)).join('')}</div></section>`).join('') + `</div>` +
     (rondas.some(R => R.dobles) ? '<p class="nota">Las rondas a doble partido muestran el resultado de la ida, el de la vuelta y el global (en negrita).</p>' : '');
+}
+
+// Selector "Fase de liga / Playoffs" de los torneos de la liga argentina
+function selFase(){
+  return `<div class="seg chico" role="group" aria-label="Qué ver del torneo">` + [['liga', 'Fase de liga'], ['playoffs', 'Playoffs']].map(([k, t]) =>
+    `<button data-k="f-${k}" aria-pressed="${S.fase === k}" onclick="S.fase='${k}';render()">${t}</button>`).join('') + `</div>`;
 }
 
 // Playoffs de la liga argentina: se arman con los partidos eliminatorios dentro de las fechas de cada torneo
 function htmlPlayoffs(slug, ps, torneo){
   const ap = torneo === 'apertura';
-  return `<h3 class="sec">Playoffs</h3>` + htmlCuadro(slug, ps, {
+  return htmlCuadro(slug, ps, {
     k: '-' + torneo, soloElim: true, campeonDe: ap ? 'Apertura' : 'Clausura',
     desde: ap ? '2026-01-01T00:00Z' : '2026-07-01T00:00Z', hasta: ap ? '2026-07-01T00:00Z' : null,
     vacio: ap ? 'Todavía no hay cruces de playoffs cargados.' : 'Los playoffs del Clausura se van a mostrar acá cuando empiecen, con los clasificados de la fase regular.'
@@ -907,9 +932,11 @@ function formaPorEquipo(partidos){
 }
 
 // Texto blanco u oscuro según el color de fondo, para que el número de la posición siempre se lea
-function tinta(c){
-  const n = parseInt(color(c).slice(1), 16), l = 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
-  return l > 170 ? '#1b1b1b' : '#fff';
+function tinta(c){   // texto blanco u oscuro, el que dé más contraste con el color de fondo
+  const n = parseInt(color(c).slice(1), 16);
+  const lin = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const L = 0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+  return (L + 0.05) / 0.0722 >= 1.05 / (L + 0.05) ? '#111' : '#fff';   // contraste con negro vs. con blanco
 }
 
 // Tarjeta de posiciones, igual para todas las ligas: # · Equipos · PTS · J · Gol · +/- · G · E · P · Últimas
@@ -920,13 +947,13 @@ function htmlTabla(filas, titulo, mostrarTitulo = false){
   const conUlt = filas.some(f => ult(f).length), conProm = filas.some(f => f.prom != null);
   const ley = [], vistos = {};
   filas.forEach(f => { if(f.nota && !vistos[f.nota.d]){ vistos[f.nota.d] = 1; ley.push(f.nota); } });
-  return `<section class="zona" aria-label="${esc(titulo)}">${mostrarTitulo ? `<h3>${esc(titulo)}</h3>` : ''}<div class="tw"><table class="gt">
+  return `<section class="zona" aria-label="${esc(titulo)}">${mostrarTitulo ? `<h3>${esc(titulo)}</h3>` : ''}<div class="tw" tabindex="0" role="region" aria-label="${esc(titulo)} (se desplaza hacia los costados)"><table class="gt">
     <caption class="sr">${esc(titulo)}</caption><thead><tr>
     ${th('#', 'Posición')}<th scope="col">Equipos</th>${th('PTS', 'Puntos')}${th('J', 'Partidos jugados')}${th('Gol', 'Goles a favor : en contra')}
     ${th('+/-', 'Diferencia de gol')}${th('G', 'Ganados')}${th('E', 'Empatados')}${th('P', 'Perdidos')}${conProm ? th('Prom.', 'Promedio de puntos por partido') : ''}${conUlt ? th('Últimas', 'Últimos 5 resultados, el más reciente a la derecha') : ''}
     </tr></thead><tbody>` +
     filas.map((f, i) => `<tr><td><span class="pos"${f.nota ? ` style="background:${color(f.nota.c)};color:${tinta(f.nota.c)}"` : ''}>${i + 1}</span>${f.nota ? `<span class="sr"> (${esc(f.nota.d)})</span>` : ''}</td>
-      <td><span class="nom">${escudo(LIGAS[S.liga].espn, f.n)}<span>${esc(f.n)}</span></span></td><td class="pt">${f.pts}</td><td>${f.pj}</td><td>${f.gf}:${f.gc}</td><td>${f.dg}</td><td>${f.g}</td><td>${f.e}</td><td>${f.p}</td>
+      <th scope="row"><span class="nom">${escudo(LIGAS[S.liga].espn, f.n)}<span>${esc(f.n)}</span></span></th><td class="pt">${f.pts}</td><td>${f.pj}</td><td>${f.gf}:${f.gc}</td><td>${f.dg}</td><td>${f.g}</td><td>${f.e}</td><td>${f.p}</td>
       ${conProm ? `<td>${f.prom != null ? f.prom.toFixed(3) : ''}</td>` : ''}${conUlt ? `<td class="ult">${ult(f).map(r => `<span class="fm ${r}" title="${nombres[r]}">${r}</span>`).join('')}</td>` : ''}</tr>`).join('') +
     `</tbody></table></div>` +
     (ley.length ? `<div class="zpie">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '') +
@@ -968,14 +995,15 @@ function menuLigas(){
   document.getElementById('ligaBtn').setAttribute('aria-label', `Liga: ${l.n}. Cambiar de liga`);
   let grupo = '', h = '';
   LIGAS.forEach((x, i) => {
-    if(x.g !== grupo){ grupo = x.g; h += `<p class="grupo">${esc(grupo)}</p>`; }
-    h += `<button class="op ${i === S.liga ? 'on' : ''}" ${i === S.liga ? 'aria-current="true"' : ''} onclick="elegirLiga(${i})"><span class="cod">${x.cod}</span>${esc(x.n)}</button>`;
+    if(x.g !== grupo){ if(grupo) h += '</div>'; grupo = x.g; h += `<div role="group" aria-label="${esc(grupo)}"><p class="grupo" aria-hidden="true">${esc(grupo)}</p>`; }
+    h += `<button type="button" class="op ${i === S.liga ? 'on' : ''}" ${i === S.liga ? 'aria-current="true"' : ''} onclick="elegirLiga(${i})"><span class="cod">${x.cod}</span>${esc(x.n)}</button>`;
   });
-  document.getElementById('ligaLista').innerHTML = h;
+  document.getElementById('ligaLista').innerHTML = h + '</div>';
 }
-function abrirMenu(abrir){
+function abrirMenu(abrir, enfocar){
   document.getElementById('ligaBtn').setAttribute('aria-expanded', String(abrir));
   document.getElementById('ligaLista').hidden = !abrir;
+  if(abrir && enfocar) (document.querySelector('#ligaLista .op.on') || document.querySelector('#ligaLista .op'))?.focus();   // con teclado, el foco pasa a la liga actual
 }
 function elegirLiga(i){
   S.liga = i;
@@ -985,13 +1013,16 @@ function elegirLiga(i){
 }
 
 function render(){
+  if(LIGAS[S.liga].sinPos && S.vista === 'tabla') S.vista = 'partidos';   // amistosos y supercopas no tienen tabla de posiciones
   const tk = ++S.tk, slug = LIGAS[S.liga].espn, main = document.getElementById('contenido');
+  document.title = S.vista === 'inicio' ? 'Chomiedos: resultados y posiciones de fútbol'
+    : `${LIGAS[S.liga].n}: ${S.vista === 'partidos' ? 'partidos' : 'posiciones'} · Chomiedos`;
   menuLigas();
   document.querySelector('.liga-menu').hidden = S.vista === 'inicio';
   const cab = `<h2 class="sr">${S.vista === 'inicio' ? 'Inicio' : esc(LIGAS[S.liga].n)}</h2><div class="seg" role="group" aria-label="Qué querés ver">
     <button data-k="v0" aria-pressed="${S.vista === 'inicio'}" onclick="S.vista='inicio';render()">Inicio</button>
     <button data-k="v1" aria-pressed="${S.vista === 'partidos'}" onclick="S.vista='partidos';render()">Partidos</button>
-    <button data-k="v2" aria-pressed="${S.vista === 'tabla'}" onclick="S.vista='tabla';render()">Posiciones</button></div>`;
+    ${LIGAS[S.liga].sinPos ? '' : `<button data-k="v2" aria-pressed="${S.vista === 'tabla'}" onclick="S.vista='tabla';render()">Posiciones</button>`}</div>`;
   if(S.vista !== 'inicio' && !cache[slug]){ main.innerHTML = cab + '<p class="nota" role="status">Cargando datos…</p>'; main._h = ''; }
   cargar(cab, tk, slug);
 }
@@ -1017,7 +1048,9 @@ async function cargar(cab, tk, slug){
         <button onclick="moverInicio(-1)" aria-label="Ver partidos del día anterior">‹</button>
         <div><h3>${esc(etiqueta)}</h3><span>${man.toLocaleDateString('es-AR', {day:'numeric', month:'long', year:'numeric'})}</span></div>
         <button onclick="moverInicio(1)" aria-label="Ver partidos del día siguiente">›</button></div>`;
-      h += partidos.length ? partidos.map(p => `<p class="nota"><b>${esc(p.liga)}</b></p><ul class="lista">${htmlPartido(p, COPAS.includes(p.ligaSlug))}</ul>`).join('') :
+      const porLiga = [];
+      partidos.forEach(p => { let g = porLiga.find(x => x.n === p.liga); if(!g) porLiga.push(g = {n:p.liga, ps:[]}); g.ps.push(p); });
+      h += porLiga.length ? porLiga.map(g => `<h3 class="lg">${esc(g.n)}</h3><ul class="lista">${g.ps.map(p => htmlPartido(p, COPAS.includes(p.ligaSlug))).join('')}</ul>`).join('') :
         '<p class="nota" role="status">No hay partidos programados para este día.</p>';
     } else {
     const D = await datosLiga(slug);
@@ -1039,7 +1072,7 @@ async function cargar(cab, tk, slug){
       if(COPAS.includes(slug)){
         const EV = await partidosEnVivo(D, slug);
         FORMA = formaPorEquipo(EV.ps);
-        const tv = ['conmebol.libertadores', 'conmebol.sudamericana', 'uefa.champions', 'uefa.europa'].includes(slug) ? await vivoTabla(slug) : null;   // solo estas tienen fase de grupos o de liga
+        const tv = ['conmebol.libertadores', 'conmebol.sudamericana', 'uefa.champions', 'uefa.europa', 'arg.copa_lpf', 'fifa.world', 'uefa.nations'].includes(slug) ? await vivoTabla(slug) : null;   // solo estas tienen fase de grupos o de liga
         const grupos = (tv || D.tabla || []).filter(g => g.filas?.length);
         const htmlGrupos = () => grupos.map(g => { if(REGLAS[slug]?.reemplazar) g.filas.forEach(f => delete f.nota); marcar(g.filas, REGLAS[slug]?.torneo || []); return htmlTabla(g.filas, g.nombre || 'Posiciones', !!g.nombre); }).join('');
         if(CUADROS.includes(slug)){
@@ -1104,21 +1137,21 @@ async function cargar(cab, tk, slug){
         }).join('');
       } else if(D.apertura && S.sub === 'apertura'){
         marcar(D.apertura, REGLAS[slug]?.apertura || []);
-        h += ['arg.1','arg.2'].includes(slug)
+        const tablasAp = ['arg.1','arg.2'].includes(slug)
           ? aperturaZonas.map(g => htmlTabla(g.filas, g.nombre, aperturaZonas.length > 1)).join('')
           : htmlTabla(apertura.length ? apertura : D.apertura, 'Torneo Apertura');
-        if(slug === 'arg.1') h += htmlPlayoffs(slug, PS, 'apertura');
+        h += slug === 'arg.1' ? selFase() + (S.fase === 'playoffs' ? htmlPlayoffs(slug, PS, 'apertura') : tablasAp) : tablasAp;
       } else if(D.intermedio && S.sub === 'intermedio'){
         marcar(D.intermedio, REGLAS[slug]?.intermedio || []);
         h += htmlTabla(intermedio.length ? intermedio : D.intermedio, 'Torneo Intermedio');
       } else if(slug === 'arg.1' && S.sub === 'clausura'){
         const zonas = tv || D.tabla;   // posiciones de ESPN, en vivo con el Worker; si falla, los datos de GitHub
-        h += zonas.map(g => {
+        const tablasCl = zonas.map(g => {
           const nombre = String(g.nombre || 'Zona').replace(/^Group /, 'Zona ');
           marcar(g.filas, REGLAS[slug]?.clausura || []);
           return htmlTabla(g.filas, nombre, zonas.length > 1);
         }).join('');
-        h += htmlPlayoffs(slug, PS, 'clausura');
+        h += selFase() + (S.fase === 'playoffs' ? htmlPlayoffs(slug, PS, 'clausura') : tablasCl);
       } else if(D.clausura && S.sub === 'clausura'){
         marcar(D.clausura, REGLAS[slug]?.clausura || []);
         h += htmlTabla(clausura.length ? clausura : D.clausura, 'Torneo Clausura');
@@ -1165,11 +1198,21 @@ setInterval(async () => {
   } catch(e){}
 }, 60000);
 
-document.getElementById('ligaBtn').addEventListener('click', () =>
-  abrirMenu(document.getElementById('ligaBtn').getAttribute('aria-expanded') !== 'true'));
+document.getElementById('ligaBtn').addEventListener('click', e => {
+  const abrir = document.getElementById('ligaBtn').getAttribute('aria-expanded') !== 'true';
+  abrirMenu(abrir, abrir && e.detail === 0);   // e.detail === 0: se activó con el teclado
+});
 document.addEventListener('click', e => { if(!e.target.closest('.liga-menu')) abrirMenu(false); });
 document.addEventListener('keydown', e => {
-  if(e.key === 'Escape'){ abrirMenu(false); document.getElementById('ligaBtn').focus(); }
+  const btn = document.getElementById('ligaBtn'), abierto = btn.getAttribute('aria-expanded') === 'true';
+  if(e.key === 'Escape' && abierto){ abrirMenu(false); btn.focus(); return; }
+  if(e.target === btn && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && !abierto){ e.preventDefault(); abrirMenu(true, true); return; }
+  if(abierto && e.target.closest?.('#ligaLista') && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)){   // moverse entre ligas con las flechas
+    e.preventDefault();
+    const ops = [...document.querySelectorAll('#ligaLista .op')], i = ops.indexOf(document.activeElement);
+    const j = e.key === 'Home' ? 0 : e.key === 'End' ? ops.length - 1 : Math.min(ops.length - 1, Math.max(0, i + (e.key === 'ArrowDown' ? 1 : -1)));
+    ops[j].focus();
+  }
 });
 
 /* ===== Aviso de primera visita y política de privacidad ===== */
