@@ -274,6 +274,16 @@ const PROXY = 'https://chomiedos.ginozuccotti2009.workers.dev';
 const COPAS = ['arg.copa','uru.copa_auf_uruguay','bra.copa_do_brazil','conmebol.libertadores','conmebol.sudamericana','uefa.champions','uefa.europa','arg.copa_lpf','arg.supercopa','fifa.world','uefa.nations'];
 const REGLAS = {
   // Libertadores: las mismas reglas en todos los grupos; reemplazan los textos que manda ESPN (que solo marca algunos grupos)
+  // Nations League: las marcas dependen de la división (A, B, C o D), que se lee del nombre del grupo ("Group A1", "Group B3"...).
+  // Siguen las que ESPN pone en el grupo A1, que explica cada una por división: reemplazan las de ESPN, que solo marca algunos grupos.
+  'uefa.nations': {reemplazar: true, porGrupo: nombre => {
+    const div = (String(nombre).match(/group\s+([a-d])/i) || [])[1]?.toUpperCase();
+    const verde = '#8fdcb4', verdeClaro = '#b5e6cf', rosa = '#f3a5ab', rojo = '#f77f86';
+    return div === 'A' ? [[1, 2, 'Clasifican a cuartos de final', verde], [3, 3, 'Playoffs de descenso', rosa], [4, 4, 'Descenso', rojo]]
+      : div === 'B' ? [[1, 1, 'Ascenso', verde], [2, 2, 'Playoffs de ascenso', verdeClaro], [3, 3, 'Playoffs de descenso', rosa], [4, 4, 'Descenso', rojo]]
+      : div === 'C' ? [[1, 1, 'Ascenso', verde], [2, 2, 'Playoffs de ascenso', verdeClaro], [4, 4, 'Descenso o playoffs de descenso', rojo]]
+      : div === 'D' ? [[1, 1, 'Ascenso', verde], [2, 2, 'Playoffs de ascenso', verdeClaro]] : [];
+  }},
   'fifa.world': {reemplazar: true, torneo: [[1, 2, 'Clasifican a dieciseisavos de final', '#8fdcb4'], [3, 3, 'Los mejores terceros también clasifican', '#b7bfd1']]},
   'conmebol.sudamericana': {reemplazar: true, torneo: [[1, 1, 'Clasifica a octavos de final', '#8fdcb4'], [2, 2, 'Clasifica a los playoffs de octavos', '#b7bfd1']]},
   'conmebol.libertadores': {reemplazar: true, torneo: [[1, 2, 'Clasifican a octavos de final', '#8fdcb4'], [3, 3, 'Clasifica a los playoffs de la Sudamericana', '#b7bfd1']]},
@@ -1075,7 +1085,7 @@ async function cargar(cab, tk, slug){
         FORMA = formaPorEquipo(EV.ps);
         const tv = ['conmebol.libertadores', 'conmebol.sudamericana', 'uefa.champions', 'uefa.europa', 'arg.copa_lpf', 'fifa.world', 'uefa.nations'].includes(slug) ? await vivoTabla(slug) : null;   // solo estas tienen fase de grupos o de liga
         const grupos = (tv || D.tabla || []).filter(g => g.filas?.length);
-        const htmlGrupos = () => grupos.map(g => { if(REGLAS[slug]?.reemplazar) g.filas.forEach(f => delete f.nota); marcar(g.filas, REGLAS[slug]?.torneo || []); return htmlTabla(g.filas, g.nombre || 'Posiciones', !!g.nombre); }).join('');
+        const htmlGrupos = () => grupos.map(g => { if(REGLAS[slug]?.reemplazar) g.filas.forEach(f => delete f.nota); marcar(g.filas, REGLAS[slug]?.porGrupo ? REGLAS[slug].porGrupo(g.nombre) : REGLAS[slug]?.torneo || []); return htmlTabla(g.filas, g.nombre || 'Posiciones', !!g.nombre); }).join('');
         if(CUADROS.includes(slug)){
           const opciones = [['cuadro', 'Cuadro']].concat(grupos.length ? [['grupos', 'Fase de grupos']] : []);
           if(!opciones.some(o => o[0] === S.sub)) S.sub = 'cuadro';
