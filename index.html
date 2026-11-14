@@ -136,6 +136,10 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 .alin .pos{margin-left:auto;color:var(--mute);font-size:14px}
 .alin .pos abbr{text-decoration:none;cursor:help}
 .alin li small{color:var(--mute);font-size:14px}
+.alin .jn{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
+.cam{display:inline-flex;align-items:center;gap:4px;padding:0 8px;border:1px solid currentColor;border-radius:999px;font:600 14px/22px Barlow,sans-serif;white-space:nowrap;background:color-mix(in srgb,currentColor 6%,transparent)}
+.cam.ent{color:var(--acc)}
+.cam.sal{color:var(--live)}
 .sec{margin:22px 14px 8px;font:700 26px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.5px}
 .lg{margin:0;padding:14px 14px 4px;color:var(--mute);font:600 16px Barlow,sans-serif;letter-spacing:.2px}
 .llave-nav{display:flex;gap:8px;overflow-x:auto;padding:4px 12px 10px}
@@ -1145,6 +1149,10 @@ function leerFicha(j){
     if(entra && sale){ enCancha.delete(norm(sale)); enCancha.add(norm(entra)); }
     return {...ev, entra, sale};
   });
+  const mins = {};   // minuto en que entró y en que salió cada jugador
+  eventos.forEach(ev => { if(ev.etiqueta === 'Cambio' && ev.entra && ev.sale){
+    (mins[norm(ev.entra)] = mins[norm(ev.entra)] || {}).entra = ev.min; (mins[norm(ev.sale)] = mins[norm(ev.sale)] || {}).sale = ev.min; } });
+  equipos.forEach(e => e.jug.forEach(x => { const m = mins[norm(x.n)]; if(m){ x.minE = m.entra || ''; x.minS = m.sale || ''; if(m.entra) x.entra = true; if(m.sale) x.sale = true; } }));
   return {estadio:lugar.fullName || '', ciudad:[dir.city, dir.state, dir.country].filter(Boolean).join(', '), asistencia:j.gameInfo?.attendance || 0, eventos, equipos};
 }
 
@@ -1225,7 +1233,8 @@ async function renderFicha(){
   }).join('')}</ol>`
     : `<p class="nota" role="status">${jug ? 'No hay eventos cargados para este partido.' : 'El partido todavía no empezó.'}</p>`;
 
-  const lista = (arr, titulo) => arr.length ? `<h5>${titulo}</h5><ul>${arr.map(x => `<li><span class="num">${esc(x.num)}</span><span>${esc(x.n)}${x.sale ? ' <small>(salió)</small>' : ''}${x.entra ? ' <small>(entró)</small>' : ''}</span><span class="pos">${posEs(x.pos)}</span></li>`).join('')}</ul>` : '';
+  const marca = (cls, flecha, texto, min) => `<span class="cam ${cls}"><span aria-hidden="true">${flecha}</span> ${texto}${min ? ` <span class="sr">en el minuto </span>${esc(min)}` : ''}</span>`;
+  const lista = (arr, titulo) => arr.length ? `<h5>${titulo}</h5><ul>${arr.map(x => `<li><span class="num">${esc(x.num)}</span><span class="jn"><span>${esc(x.n)}</span>${x.entra ? marca('ent', '▲', 'Entró', x.minE) : ''}${x.sale ? marca('sal', '▼', 'Salió', x.minS) : ''}</span><span class="pos">${String(x.pos).toUpperCase() === 'SUB' ? '' : posEs(x.pos)}</span></li>`).join('')}</ul>` : '';
   const alinHtml = F?.equipos?.some(e => e.jug.length)
     ? `<div class="alin">${F.equipos.map(e => `<div><h4>${escudo(slug, e.n)}<span>${esc(e.n)}</span>${e.formacion ? `<small>${esc(e.formacion)}</small>` : ''}</h4>${lista(e.jug.filter(x => x.titular).sort((a, b) => a.lugar - b.lugar || a.i - b.i), 'Titulares')}${lista(e.jug.filter(x => !x.titular), 'Suplentes')}</div>`).join('')}</div>`
     : `<p class="nota" role="status">${F ? 'Las alineaciones todavía no están disponibles.' : 'No se pudieron cargar las alineaciones (sin conexión con el Worker).'}</p>`;
