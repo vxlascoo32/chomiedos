@@ -25,6 +25,10 @@ abbr{text-decoration:none}
 .hero::before{content:"";position:absolute;right:92px;top:0;bottom:0;border-right:3px solid rgba(255,255,255,.2)}
 .hero::after{content:"";position:absolute;right:-8px;top:50%;width:190px;height:190px;margin-top:-95px;border:3px solid rgba(255,255,255,.2);border-radius:50%}
 .hero-in{position:relative;z-index:1;max-width:760px;margin:auto;padding:26px max(16px,env(safe-area-inset-right)) 26px max(16px,env(safe-area-inset-left));display:flex;align-items:center;gap:16px}
+.hero a{color:inherit;text-decoration:none}
+.hero a.marca{display:block;flex:none;border-radius:50%}
+.hero h1 a:hover{text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:3px}
+.hero a:focus-visible{outline:3px solid #fff;outline-offset:4px;border-radius:6px}
 .logo{width:68px;height:68px;flex:none;filter:drop-shadow(0 3px 5px rgba(0,0,0,.35))}
 h1{margin:0;font:italic 700 clamp(44px,11vw,68px)/.95 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.5px;text-shadow:0 3px 0 rgba(0,0,0,.25)}
 .hero p{margin:6px 0 0;font-size:18px}
@@ -105,10 +109,18 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 .ficha .dato{margin:4px 14px;font-size:17px}
 .ficha .dato small{color:var(--mute);font-size:15px}
 .ev{list-style:none;margin:0;padding:0 14px}
-.ev li{display:grid;grid-template-columns:54px 112px 1fr;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
-.ev .min{font-variant-numeric:tabular-nums;color:var(--mute)}
-.ev .que{display:flex;align-items:center;gap:8px;min-width:0}
-.ev .que .nm2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;color:var(--mute)}
+.ev li{display:grid;grid-template-columns:52px 1fr;gap:4px 10px;align-items:start;padding:11px 0;border-bottom:1px solid var(--line)}
+.ev .min{padding-top:3px;font-variant-numeric:tabular-nums;color:var(--mute)}
+.ev .cuerpo{display:flex;flex-direction:column;gap:5px;min-width:0}
+.ev .cab{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ev .eqn{display:inline-flex;align-items:center;gap:6px;color:var(--mute);font-size:15px}
+.ev .marc{margin-left:auto;font:700 20px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.5px}
+.ev .lin{font-size:17px}
+.ev .lin b{font-weight:700}
+.ev .asi{color:var(--mute);font-size:15px}
+.ent{color:var(--acc);font-weight:700}
+.sal{color:var(--live);font-weight:700}
+.ev .lin .ent,.ev .lin .sal{display:inline-block;min-width:74px}
 .tag{display:inline-block;padding:2px 8px;border-radius:6px;font:700 14px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.3px;background:var(--tint);color:var(--ink);border:1px solid var(--line)}
 .tag.gol{background:var(--acc);border-color:var(--acc);color:var(--onacc)}
 .tag.am{background:#f1b60b;border-color:#f1b60b;color:#2a2200}
@@ -122,8 +134,8 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 .alin li{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line)}
 .alin .num{min-width:28px;text-align:right;font-variant-numeric:tabular-nums;color:var(--mute)}
 .alin .pos{margin-left:auto;color:var(--mute);font-size:14px}
+.alin .pos abbr{text-decoration:none;cursor:help}
 .alin li small{color:var(--mute);font-size:14px}
-@media(max-width:480px){.ev li{grid-template-columns:48px 1fr;}.ev .que{grid-column:2}.ev li > :nth-child(3){grid-column:2}}
 .sec{margin:22px 14px 8px;font:700 26px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.5px}
 .lg{margin:0;padding:14px 14px 4px;color:var(--mute);font:600 16px Barlow,sans-serif;letter-spacing:.2px}
 .llave-nav{display:flex;gap:8px;overflow-x:auto;padding:4px 12px 10px}
@@ -194,9 +206,9 @@ dialog.modal::backdrop{background:rgba(0,0,0,.55)}
 <body>
 <a class="skip" href="#contenido">Saltar al contenido</a>
 <header class="hero"><div class="hero-in">
-  <svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="29" fill="#fff"/><path d="M32 18l11.5 8.4-4.4 13.6H24.9l-4.4-13.6z" fill="#0e6b3d"/><path d="M32 18V5M43.5 26.4l12.3-4M39.1 40l7.6 10.5M24.9 40l-7.6 10.5M20.5 26.4l-12.3-4" stroke="#0e6b3d" stroke-width="3.5" stroke-linecap="round" fill="none"/></svg>
+  <a href="./" class="marca" tabindex="-1" aria-hidden="true" onclick="irInicio(event)"><svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="29" fill="#fff"/><path d="M32 18l11.5 8.4-4.4 13.6H24.9l-4.4-13.6z" fill="#0e6b3d"/><path d="M32 18V5M43.5 26.4l12.3-4M39.1 40l7.6 10.5M24.9 40l-7.6 10.5M20.5 26.4l-12.3-4" stroke="#0e6b3d" stroke-width="3.5" stroke-linecap="round" fill="none"/></svg></a>
   <div>
-    <h1>Chomiedos</h1>
+    <h1><a href="./" class="titulo" onclick="irInicio(event)">Chomiedos</a></h1>
     <p>Resultados, goles y posiciones en vivo</p>
   </div>
 </div></header>
@@ -1073,6 +1085,26 @@ function render(){
 
 /* ===== Ficha del partido: estadio, eventos y alineaciones =====
    Al tocar un partido se abre #partido/<liga>/<id>. Los datos salen del resumen del partido de ESPN (por el Worker). */
+// Posiciones de ESPN (en inglés) -> abreviatura en español y nombre completo
+const POSICIONES = {
+  G:['ARQ','Arquero'], GK:['ARQ','Arquero'],
+  D:['DEF','Defensor'], CD:['DFC','Defensor central'], 'CD-L':['DFC','Defensor central'], 'CD-R':['DFC','Defensor central'], CB:['DFC','Defensor central'], 'CB-L':['DFC','Defensor central'], 'CB-R':['DFC','Defensor central'],
+  LB:['DFI','Defensor izquierdo'], LWB:['DFI','Defensor izquierdo'], RB:['DFD','Defensor derecho'], RWB:['DFD','Defensor derecho'], SW:['LIB','Líbero'],
+  M:['MED','Mediocampista'], DM:['MCD','Mediocampista central defensivo'], CDM:['MCD','Mediocampista central defensivo'],
+  CM:['MC','Mediocampista central'], 'CM-L':['MC','Mediocampista central'], 'CM-R':['MC','Mediocampista central'],
+  AM:['MCO','Mediocampista central ofensivo'], CAM:['MCO','Mediocampista central ofensivo'],
+  LM:['MI','Mediocampista izquierdo'], RM:['MD','Mediocampista derecho'],
+  LW:['EI','Extremo izquierdo'], LF:['EI','Extremo izquierdo'], RW:['ED','Extremo derecho'], RF:['ED','Extremo derecho'],
+  F:['DEL','Delantero'], CF:['DC','Delantero centro'], 'CF-L':['DC','Delantero centro'], 'CF-R':['DC','Delantero centro'], ST:['DC','Delantero centro'], S:['DC','Delantero centro'], SS:['SD','Segundo delantero'],
+  SUB:['SUP','Suplente']
+};
+function posEs(abr){
+  const a = String(abr || '').toUpperCase().trim();
+  if(!a) return '';
+  const p = POSICIONES[a];
+  return p ? `<abbr title="${esc(p[1])}">${p[0]}</abbr>` : esc(a);   // si ESPN manda una posición que no conocemos, se muestra como viene
+}
+
 function leerFicha(j){
   const flag = v => !!(v && (v.didSub ?? v));
   const lugar = j.gameInfo?.venue || {}, dir = lugar.address || {};
@@ -1083,22 +1115,36 @@ function leerFicha(j){
     : /yellow card/.test(t) ? ['Amarilla', 'am']
     : /red card/.test(t) ? ['Roja', 'roj']
     : /substitution/.test(t) ? ['Cambio', ''] : null;
-  const eventos = (j.keyEvents || []).map(e => {
+  const base = (j.keyEvents || []).map(e => {
     const c = clasif(String(e.type?.text || e.type?.type || '').toLowerCase());
     if(!c) return null;
     const nombres = (e.participants || []).map(x => x.athlete?.displayName).filter(Boolean);
-    let jug = nombres[0] || '';
-    if(c[0] === 'Cambio'){
-      const m = String(e.text || e.shortText || '').match(/\.\s*(.+?)\s+replaces\s+(.+?)\.?\s*$/i);
-      jug = m ? `Entra ${m[1]}, sale ${m[2]}` : nombres.length > 1 ? `${nombres[0]} y ${nombres[1]}` : nombres[0] || '';
-    }
-    return {min:e.clock?.displayValue || '', etiqueta:c[0], cls:c[1], equipo:e.team?.displayName || '', jug};
+    const texto = String(e.text || e.shortText || '');
+    const asist = c[1] === 'gol' ? (texto.match(/assisted by\s+(.+?)(?:\s+(?:following|with|after|from|on)\b|\.|$)/i) || [])[1] || '' : '';
+    return {min:e.clock?.displayValue || '', etiqueta:c[0], cls:c[1], equipo:e.team?.displayName || '', nombres, texto, asist, jug:nombres[0] || ''};
   }).filter(Boolean);
   const equipos = (j.rosters || []).map(r => ({
     n:r.team?.displayName || '', lado:r.homeAway, formacion:r.formation || '',
     jug:(r.roster || []).map((x, i) => ({n:x.athlete?.displayName || x.athlete?.fullName || '', num:x.jersey || x.athlete?.jersey || '', pos:x.position?.abbreviation || '',
       titular:!!x.starter, entra:flag(x.subbedIn), sale:flag(x.subbedOut), lugar:+x.formationPlace || 99, i}))
   })).sort((a, b) => (a.lado === 'home' ? 0 : 1) - (b.lado === 'home' ? 0 : 1));
+  // Cambios: entra el que NO estaba en la cancha. Se sabe por los titulares y por los cambios anteriores;
+  // si no hay forma de saberlo, se muestran los dos nombres sin decir quién entra y quién sale.
+  const norm = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const enCancha = new Set();
+  equipos.forEach(e => e.jug.filter(x => x.titular).forEach(x => enCancha.add(norm(x.n))));
+  const eventos = base.map(ev => {
+    if(ev.etiqueta !== 'Cambio') return ev;
+    let entra = '', sale = '';
+    const m = ev.texto.match(/\.\s*(.+?)\s+replaces\s+(.+?)(?:\s+because\b.*?)?\.?\s*$/i);
+    if(m){ entra = m[1]; sale = m[2]; }
+    else if(ev.nombres.length > 1){
+      const [x, y] = ev.nombres, ax = enCancha.has(norm(x)), ay = enCancha.has(norm(y));
+      if(ax && !ay){ sale = x; entra = y; } else if(ay && !ax){ sale = y; entra = x; }
+    }
+    if(entra && sale){ enCancha.delete(norm(sale)); enCancha.add(norm(entra)); }
+    return {...ev, entra, sale};
+  });
   return {estadio:lugar.fullName || '', ciudad:[dir.city, dir.state, dir.country].filter(Boolean).join(', '), asistencia:j.gameInfo?.attendance || 0, eventos, equipos};
 }
 
@@ -1109,6 +1155,13 @@ async function pedirFicha(slug, id){
 function leerHash(){
   const m = location.hash.match(/^#partido\/([^/]+)\/([^/]+)$/);
   S.ficha = m ? {slug:decodeURIComponent(m[1]), id:decodeURIComponent(m[2])} : null;
+}
+function irInicio(e){   // el logo y el nombre de la página llevan a la pantalla principal
+  e?.preventDefault();
+  abrirMenu(false);
+  if(S.ficha || location.hash) history.replaceState(null, '', location.pathname + location.search);
+  S.ficha = null; S.vista = 'inicio'; S.vinoDeLista = false;
+  render(); window.scrollTo(0, 0);
 }
 function volverDeFicha(){
   if(S.vinoDeLista){ history.back(); return; }   // se llegó tocando un partido: "atrás" del navegador
@@ -1147,11 +1200,32 @@ async function renderFicha(){
 
   // eventos: los del resumen de ESPN; si no hay, los goles que ya tenemos guardados
   let eventos = F?.eventos || [];
-  if(!eventos.length) eventos = (p.goles || []).map(g => ({min:g.m, etiqueta:g.t === 'p' ? 'Gol de penal' : g.t === 'e' ? 'Gol en contra' : 'Gol', cls:'gol', equipo:g.l === 'h' ? p.h : p.v, jug:g.n || ''}));
-  const evHtml = eventos.length ? `<ol class="ev">${eventos.map(e => `<li><span class="min">${esc(e.min)}</span><span class="que"><span class="tag ${e.cls}">${esc(e.etiqueta)}</span></span><span class="que">${e.equipo ? escudo(slug, e.equipo) : ''}<span>${esc(e.jug)}${e.jug && e.equipo ? ' ' : ''}<span class="nm2">${esc(e.equipo)}</span></span></span></li>`).join('')}</ol>`
+  if(!eventos.length) eventos = (p.goles || []).map(g => ({min:g.m, etiqueta:g.t === 'p' ? 'Gol de penal' : g.t === 'e' ? 'Gol en contra' : 'Gol', cls:'gol', equipo:g.l === 'h' ? p.h : p.v, jug:g.n || '', nombres:[], asist:''}));
+  // marcador después de cada gol: solo se muestra si, sumando todos los goles, da el resultado del partido
+  const marcadores = invertir => {
+    let a = 0, b = 0;
+    const lista = eventos.map(e => {
+      if(e.cls !== 'gol') return null;
+      const loc = e.equipo === p.h, vis = e.equipo === p.v;
+      if(!loc && !vis) return undefined;
+      const contra = e.etiqueta === 'Gol en contra' && invertir;
+      if(loc !== contra) a++; else b++;
+      return `${a} - ${b}`;
+    });
+    return lista.includes(undefined) || (jug && !susp && (a !== +p.gl || b !== +p.gv)) ? null : lista;
+  };
+  const marc = marcadores(false) || marcadores(true);
+  const evHtml = eventos.length ? `<ol class="ev">${eventos.map((e, k) => {
+    const cuerpo = e.etiqueta === 'Cambio'
+      ? (e.entra && e.sale
+        ? `<div class="lin"><span class="ent"><span aria-hidden="true">▲</span> Entra</span> <b>${esc(e.entra)}</b></div><div class="lin"><span class="sal"><span aria-hidden="true">▼</span> Sale</span> ${esc(e.sale)}</div>`
+        : `<div class="lin">${esc(e.nombres?.length ? e.nombres.join(' y ') : e.jug)}</div>`)
+      : `<div class="lin"><b>${esc(e.jug)}</b></div>${e.asist ? `<div class="asi">Asistencia: ${esc(e.asist)}</div>` : ''}`;
+    return `<li><span class="min">${esc(e.min)}</span><div class="cuerpo"><div class="cab"><span class="tag ${e.cls}">${esc(e.etiqueta)}</span>${e.equipo ? `<span class="eqn">${escudo(slug, e.equipo)}<span>${esc(e.equipo)}</span></span>` : ''}${marc && marc[k] ? `<span class="marc"><span class="sr">Resultado: </span>${marc[k]}</span>` : ''}</div>${cuerpo}</div></li>`;
+  }).join('')}</ol>`
     : `<p class="nota" role="status">${jug ? 'No hay eventos cargados para este partido.' : 'El partido todavía no empezó.'}</p>`;
 
-  const lista = (arr, titulo) => arr.length ? `<h5>${titulo}</h5><ul>${arr.map(x => `<li><span class="num">${esc(x.num)}</span><span>${esc(x.n)}${x.sale ? ' <small>(salió)</small>' : ''}${x.entra ? ' <small>(entró)</small>' : ''}</span><span class="pos">${esc(x.pos)}</span></li>`).join('')}</ul>` : '';
+  const lista = (arr, titulo) => arr.length ? `<h5>${titulo}</h5><ul>${arr.map(x => `<li><span class="num">${esc(x.num)}</span><span>${esc(x.n)}${x.sale ? ' <small>(salió)</small>' : ''}${x.entra ? ' <small>(entró)</small>' : ''}</span><span class="pos">${posEs(x.pos)}</span></li>`).join('')}</ul>` : '';
   const alinHtml = F?.equipos?.some(e => e.jug.length)
     ? `<div class="alin">${F.equipos.map(e => `<div><h4>${escudo(slug, e.n)}<span>${esc(e.n)}</span>${e.formacion ? `<small>${esc(e.formacion)}</small>` : ''}</h4>${lista(e.jug.filter(x => x.titular).sort((a, b) => a.lugar - b.lugar || a.i - b.i), 'Titulares')}${lista(e.jug.filter(x => !x.titular), 'Suplentes')}</div>`).join('')}</div>`
     : `<p class="nota" role="status">${F ? 'Las alineaciones todavía no están disponibles.' : 'No se pudieron cargar las alineaciones (sin conexión con el Worker).'}</p>`;
