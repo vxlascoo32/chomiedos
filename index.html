@@ -295,7 +295,6 @@ const LIGAS = [
   {n:'Liga Profesional de Fútbol', espn:'arg.1', cod:'ARG', g:'Argentina'},
   {n:'Primera Nacional', espn:'arg.2', cod:'ARG', g:'Argentina'},
   {n:'Copa Argentina', espn:'arg.copa', cod:'ARG', g:'Argentina'},
-  {n:'Copa de la Liga', espn:'arg.copa_lpf', cod:'ARG', g:'Argentina'},
   {n:'Supercopa Argentina', espn:'arg.supercopa', cod:'ARG', g:'Argentina', sinPos:true},
   {n:'Brasileirão', espn:'bra.1', cod:'BRA', g:'Brasil'},
   {n:'Copa de Brasil', espn:'bra.copa_do_brazil', cod:'BRA', g:'Brasil'},
@@ -324,7 +323,7 @@ const PROXY = 'https://chomiedos.ginozuccotti2009.workers.dev';
 
 // Marcas de posiciones para las tablas que ESPN no marca: [desde, hasta, texto, color].
 // Los negativos cuentan desde el final (-1 = último). Es la misma lista que tiene actualizar.py.
-const COPAS = ['arg.copa','uru.copa_auf_uruguay','bra.copa_do_brazil','conmebol.libertadores','conmebol.sudamericana','uefa.champions','uefa.europa','arg.copa_lpf','arg.supercopa','fifa.world','uefa.nations'];
+const COPAS = ['arg.copa','uru.copa_auf_uruguay','bra.copa_do_brazil','conmebol.libertadores','conmebol.sudamericana','uefa.champions','uefa.europa','arg.supercopa','fifa.world','uefa.nations'];
 const REGLAS = {
   // Libertadores: las mismas reglas en todos los grupos; reemplazan los textos que manda ESPN (que solo marca algunos grupos)
   // Nations League: las marcas dependen de la división (A, B, C o D), que se lee del nombre del grupo ("Group A1", "Group B3"...).
@@ -387,9 +386,67 @@ function diaTexto(dia){
 }
 
 /* ===== Datos: datos/<liga>.json, que mantiene actualizar.py ===== */
+/* ===== Nombres de selecciones en español =====
+   ESPN manda los nombres en inglés. Se traducen apenas entran a la página (partidos, tablas, escudos y ficha),
+   solo en las competiciones de selecciones. Un nombre que no está en la lista se muestra tal cual. */
+const SELECCIONES = new Set(['fifa.friendly', 'fifa.world', 'uefa.nations']);
+const normNombre = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[.']/g, '').replace(/\s+/g, ' ').trim();
+const ES_SELECCIONES = (() => {
+  const m = {};
+  [ // [español, ...nombres que usa ESPN en inglés]
+    ['Albania'], ['Andorra'], ['Armenia'], ['Austria'], ['Azerbaiyán', 'Azerbaijan'], ['Bielorrusia', 'Belarus'], ['Bélgica', 'Belgium'],
+    ['Bosnia y Herzegovina', 'Bosnia-Herzegovina', 'Bosnia and Herzegovina', 'Bosnia & Herzegovina'], ['Bulgaria'], ['Croacia', 'Croatia'], ['Chipre', 'Cyprus'],
+    ['Chequia', 'Czechia', 'Czech Republic'], ['Dinamarca', 'Denmark'], ['Inglaterra', 'England'], ['Estonia'], ['Islas Feroe', 'Faroe Islands'], ['Finlandia', 'Finland'],
+    ['Francia', 'France'], ['Georgia'], ['Alemania', 'Germany'], ['Gibraltar'], ['Grecia', 'Greece'], ['Hungría', 'Hungary'], ['Islandia', 'Iceland'], ['Israel'],
+    ['Italia', 'Italy'], ['Kazajistán', 'Kazakhstan'], ['Kosovo'], ['Letonia', 'Latvia'], ['Liechtenstein'], ['Lituania', 'Lithuania'], ['Luxemburgo', 'Luxembourg'],
+    ['Malta'], ['Moldavia', 'Moldova'], ['Montenegro'], ['Países Bajos', 'Netherlands', 'Holland'], ['Macedonia del Norte', 'North Macedonia'],
+    ['Irlanda del Norte', 'Northern Ireland'], ['Noruega', 'Norway'], ['Polonia', 'Poland'], ['Portugal'], ['Irlanda', 'Republic of Ireland', 'Ireland'],
+    ['Rumania', 'Romania'], ['Rusia', 'Russia'], ['San Marino'], ['Escocia', 'Scotland'], ['Serbia'], ['Eslovaquia', 'Slovakia'], ['Eslovenia', 'Slovenia'],
+    ['España', 'Spain'], ['Suecia', 'Sweden'], ['Suiza', 'Switzerland'], ['Turquía', 'Türkiye', 'Turkiye', 'Turkey'], ['Ucrania', 'Ukraine'], ['Gales', 'Wales'],
+    ['Argentina'], ['Bolivia'], ['Brasil', 'Brazil'], ['Chile'], ['Colombia'], ['Ecuador'], ['Paraguay'], ['Perú', 'Peru'], ['Uruguay'], ['Venezuela'],
+    ['Anguila', 'Anguilla'], ['Antigua y Barbuda', 'Antigua and Barbuda'], ['Aruba'], ['Bahamas'], ['Barbados'], ['Belice', 'Belize'], ['Bermudas', 'Bermuda'],
+    ['Canadá', 'Canada'], ['Islas Caimán', 'Cayman Islands'], ['Costa Rica'], ['Cuba'], ['Curazao', 'Curacao'], ['Dominica'], ['República Dominicana', 'Dominican Republic'],
+    ['El Salvador'], ['Granada', 'Grenada'], ['Guadalupe', 'Guadeloupe'], ['Guatemala'], ['Guayana Francesa', 'French Guiana'], ['Guyana'], ['Haití', 'Haiti'], ['Honduras'],
+    ['Jamaica'], ['Martinica', 'Martinique'], ['México', 'Mexico'], ['Montserrat'], ['Nicaragua'], ['Panamá', 'Panama'], ['Puerto Rico'],
+    ['San Cristóbal y Nieves', 'Saint Kitts and Nevis', 'St Kitts and Nevis'], ['Santa Lucía', 'Saint Lucia', 'St Lucia'],
+    ['San Vicente y las Granadinas', 'Saint Vincent and the Grenadines', 'St Vincent and the Grenadines'], ['Surinam', 'Suriname'],
+    ['Trinidad y Tobago', 'Trinidad and Tobago'], ['Estados Unidos', 'United States', 'USA', 'US'], ['Islas Turcas y Caicos', 'Turks and Caicos Islands', 'Turks and Caicos'],
+    ['Islas Vírgenes de EE. UU.', 'US Virgin Islands', 'U.S. Virgin Islands'], ['Islas Vírgenes Británicas', 'British Virgin Islands'],
+    ['Argelia', 'Algeria'], ['Angola'], ['Benín', 'Benin'], ['Botsuana', 'Botswana'], ['Burkina Faso'], ['Burundi'], ['Camerún', 'Cameroon'],
+    ['Cabo Verde', 'Cape Verde', 'Cape Verde Islands'], ['República Centroafricana', 'Central African Republic'], ['Chad'], ['Comoras', 'Comoros'], ['Congo'],
+    ['RD Congo', 'DR Congo', 'Congo DR', 'Democratic Republic of the Congo', 'Congo, DR'], ['Yibuti', 'Djibouti'], ['Egipto', 'Egypt'],
+    ['Guinea Ecuatorial', 'Equatorial Guinea'], ['Eritrea'], ['Esuatini', 'Eswatini', 'Swaziland'], ['Etiopía', 'Ethiopia'], ['Gabón', 'Gabon'], ['Gambia'], ['Ghana'],
+    ['Guinea'], ['Guinea-Bisáu', 'Guinea-Bissau', 'Guinea Bissau'], ['Costa de Marfil', 'Ivory Coast', "Côte d'Ivoire", 'Cote dIvoire'], ['Kenia', 'Kenya'], ['Lesoto', 'Lesotho'],
+    ['Liberia'], ['Libia', 'Libya'], ['Madagascar'], ['Malaui', 'Malawi'], ['Malí', 'Mali'], ['Mauritania'], ['Mauricio', 'Mauritius'], ['Marruecos', 'Morocco'],
+    ['Mozambique'], ['Namibia'], ['Níger', 'Niger'], ['Nigeria'], ['Ruanda', 'Rwanda'], ['Santo Tomé y Príncipe', 'Sao Tome and Principe'], ['Senegal'], ['Seychelles'],
+    ['Sierra Leona', 'Sierra Leone'], ['Somalia'], ['Sudáfrica', 'South Africa'], ['Sudán del Sur', 'South Sudan'], ['Sudán', 'Sudan'], ['Tanzania'], ['Togo'], ['Túnez', 'Tunisia'],
+    ['Uganda'], ['Zambia'], ['Zimbabue', 'Zimbabwe'],
+    ['Afganistán', 'Afghanistan'], ['Australia'], ['Baréin', 'Bahrain'], ['Bangladés', 'Bangladesh'], ['Bután', 'Bhutan'], ['Brunéi', 'Brunei'], ['Camboya', 'Cambodia'],
+    ['China', 'China PR'], ['Taipéi Chino', 'Chinese Taipei'], ['Guam'], ['Hong Kong'], ['India'], ['Indonesia'], ['Irán', 'Iran', 'IR Iran'], ['Irak', 'Iraq'], ['Japón', 'Japan'],
+    ['Jordania', 'Jordan'], ['Kuwait'], ['Kirguistán', 'Kyrgyzstan'], ['Laos'], ['Líbano', 'Lebanon'], ['Macao', 'Macau'], ['Malasia', 'Malaysia'], ['Maldivas', 'Maldives'],
+    ['Mongolia'], ['Myanmar'], ['Nepal'], ['Corea del Norte', 'North Korea', 'Korea DPR'], ['Omán', 'Oman'], ['Pakistán', 'Pakistan'], ['Palestina', 'Palestine'],
+    ['Filipinas', 'Philippines'], ['Catar', 'Qatar'], ['Arabia Saudita', 'Saudi Arabia'], ['Singapur', 'Singapore'], ['Corea del Sur', 'South Korea', 'Korea Republic'],
+    ['Sri Lanka'], ['Siria', 'Syria'], ['Tayikistán', 'Tajikistan'], ['Tailandia', 'Thailand'], ['Timor Oriental', 'Timor-Leste', 'East Timor'], ['Turkmenistán', 'Turkmenistan'],
+    ['Emiratos Árabes Unidos', 'United Arab Emirates', 'UAE'], ['Uzbekistán', 'Uzbekistan'], ['Vietnam'],
+    ['Nueva Zelanda', 'New Zealand'], ['Fiyi', 'Fiji'], ['Papúa Nueva Guinea', 'Papua New Guinea'], ['Islas Salomón', 'Solomon Islands'], ['Vanuatu'],
+    ['Nueva Caledonia', 'New Caledonia'], ['Tahití', 'Tahiti'], ['Samoa'], ['Tonga'], ['Islas Cook', 'Cook Islands'], ['Samoa Americana', 'American Samoa']
+  ].forEach(([es, ...ingles]) => [es, ...ingles].forEach(n => { m[normNombre(n)] = es; }));
+  return m;
+})();
+function nomEq(slug, n){
+  if(!n || !SELECCIONES.has(slug)) return n;
+  const base = ES_SELECCIONES[normNombre(n)];
+  if(base) return base;
+  const m = String(n).match(/^(.*?)\s+(u-?\d{2}|women|olympic)$/i);   // selecciones juveniles, femeninas y olímpicas
+  const b = m && ES_SELECCIONES[normNombre(m[1])];
+  if(!b) return n;
+  const suf = /^u/i.test(m[2]) ? 'Sub-' + m[2].replace(/\D/g, '') : /^women/i.test(m[2]) ? '(F)' : 'Olímpico';
+  return `${b} ${suf}`;
+}
+
 const ESCUDOS = {};   // liga -> {nombre del equipo: URL del escudo (de ESPN)}
 function regEscudo(slug, equipo){
-  const n = equipo?.displayName;
+  const n = nomEq(slug, equipo?.displayName);
   const u = equipo?.logo || equipo?.logos?.find(l => l.href)?.href || (equipo?.id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${equipo.id}.png` : '');
   if(!n || !u || !/^https:\/\//.test(u)) return;
   const m = ESCUDOS[slug] = ESCUDOS[slug] || {};
@@ -409,6 +466,10 @@ function escudo(slug, nombre, k){
 function armar(raw, slug){
   const j = JSON.parse(raw);
   j.raw = raw;
+  if(SELECCIONES.has(slug)){   // nombres de selecciones en español
+    j.partidos = (j.partidos || []).map(p => ({...p, h:nomEq(slug, p.h), v:nomEq(slug, p.v)}));
+    (j.tabla || []).forEach(g => (g.filas || []).forEach(f => { f.n = nomEq(slug, f.n); }));
+  }
   Object.entries(j.escudos || {}).forEach(([n, u]) => regEscudo(slug, {displayName:n, logo:u}));
   j.partidos = [...new Map(j.partidos.map((p, i) => [p.id || 'sin-id-' + i, p])).values()];   // si un id está dos veces, queda el último
   j.dias = [...new Set(j.partidos.map(p => p.dia))].sort(); // solo días con partidos: los vacíos se saltean
@@ -450,7 +511,7 @@ function leerEventos(j, dia, slug){
                   m:d.clock?.displayValue || '', t:d.penaltyKick ? 'p' : d.ownGoal ? 'e' : ''}));
     const rondaESPN = e.season?.slug || '';
     const rondas = {'league-phase':'Fase de liga','knockout-round-playoffs':'Playoffs de octavos','round-of-64':'Treintaidosavos de final','round-of-32':'Dieciseisavos de final','round-of-16':'Octavos de final','quarterfinals':'Cuartos de final','semifinals':'Semifinal','final':'Final'};
-    return {id:e.id, dia, fecha:e.date, ronda:rondas[rondaESPN] || rondaESPN.replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase()), h:L.team?.displayName, v:V.team?.displayName, gl:L.score, gv:V.score,
+    return {id:e.id, dia, fecha:e.date, ronda:rondas[rondaESPN] || rondaESPN.replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase()), h:nomEq(slug, L.team?.displayName), v:nomEq(slug, V.team?.displayName), gl:L.score, gv:V.score,
             estado:st.state, completo:st.completed, detalle:st.shortDetail, goles,
             ...(L.shootoutScore != null && V.shootoutScore != null ? {pl:L.shootoutScore, pv:V.shootoutScore} : {})};
   });
@@ -462,7 +523,7 @@ function leerTabla(j, slug){
     const filas = (g.standings?.entries || []).map(e => {
       regEscudo(slug, e.team);
       const s = k => Math.trunc(e.stats?.find(x => x.name === k)?.value || 0);
-      const fila = {n:e.team?.displayName, pj:s('gamesPlayed'), g:s('wins'), e:s('ties'), p:s('losses'),
+      const fila = {n:nomEq(slug, e.team?.displayName), pj:s('gamesPlayed'), g:s('wins'), e:s('ties'), p:s('losses'),
                     gf:s('pointsFor'), gc:s('pointsAgainst'), dg:s('pointDifferential'), pts:s('points'), rank:s('rank')};
       if(e.note?.description){
         let c = e.note.color || ''; c = c.startsWith('#') ? c : '#' + c;
@@ -1114,7 +1175,7 @@ function posEs(abr){
   return p ? `<abbr title="${esc(p[1])}">${p[0]}</abbr>` : esc(a);   // si ESPN manda una posición que no conocemos, se muestra como viene
 }
 
-function leerFicha(j){
+function leerFicha(j, slug){
   const flag = v => !!(v && (v.didSub ?? v));
   const lugar = j.gameInfo?.venue || {}, dir = lugar.address || {};
   const clasif = t => /own goal/.test(t) ? ['Gol en contra', 'gol']
@@ -1130,10 +1191,10 @@ function leerFicha(j){
     const nombres = (e.participants || []).map(x => x.athlete?.displayName).filter(Boolean);
     const texto = String(e.text || e.shortText || '');
     const asist = c[1] === 'gol' ? (texto.match(/assisted by\s+(.+?)(?:\s+(?:following|with|after|from|on)\b|\.|$)/i) || [])[1] || '' : '';
-    return {min:e.clock?.displayValue || '', etiqueta:c[0], cls:c[1], equipo:e.team?.displayName || '', nombres, texto, asist, jug:nombres[0] || ''};
+    return {min:e.clock?.displayValue || '', etiqueta:c[0], cls:c[1], equipo:nomEq(slug, e.team?.displayName) || '', nombres, texto, asist, jug:nombres[0] || ''};
   }).filter(Boolean);
   const equipos = (j.rosters || []).map(r => ({
-    n:r.team?.displayName || '', lado:r.homeAway, formacion:r.formation || '',
+    n:nomEq(slug, r.team?.displayName) || '', lado:r.homeAway, formacion:r.formation || '',
     jug:(r.roster || []).map((x, i) => ({n:x.athlete?.displayName || x.athlete?.fullName || '', num:x.jersey || x.athlete?.jersey || '', pos:x.position?.abbreviation || '',
       titular:!!x.starter, entra:flag(x.subbedIn), sale:flag(x.subbedOut), lugar:+x.formationPlace || 99, i}))
   })).sort((a, b) => (a.lado === 'home' ? 0 : 1) - (b.lado === 'home' ? 0 : 1));
@@ -1162,7 +1223,7 @@ function leerFicha(j){
 }
 
 async function pedirFicha(slug, id){
-  return pedirVivo(`ficha|${slug}|${id}`, `site/v2/sports/soccer/${slug}/summary`, `&event=${encodeURIComponent(id)}`, 15000, leerFicha);
+  return pedirVivo(`ficha|${slug}|${id}`, `site/v2/sports/soccer/${slug}/summary`, `&event=${encodeURIComponent(id)}`, 15000, j => leerFicha(j, slug));
 }
 
 function leerHash(){
@@ -1324,7 +1385,7 @@ async function cargar(cab, tk, slug){
       if(COPAS.includes(slug)){
         const EV = await partidosEnVivo(D, slug);
         FORMA = formaPorEquipo(EV.ps);
-        const tv = ['conmebol.libertadores', 'conmebol.sudamericana', 'uefa.champions', 'uefa.europa', 'arg.copa_lpf', 'fifa.world', 'uefa.nations'].includes(slug) ? await vivoTabla(slug) : null;   // solo estas tienen fase de grupos o de liga
+        const tv = ['conmebol.libertadores', 'conmebol.sudamericana', 'uefa.champions', 'uefa.europa', 'fifa.world', 'uefa.nations'].includes(slug) ? await vivoTabla(slug) : null;   // solo estas tienen fase de grupos o de liga
         const grupos = (tv || D.tabla || []).filter(g => g.filas?.length);
         const htmlGrupos = () => grupos.map(g => { if(REGLAS[slug]?.reemplazar) g.filas.forEach(f => delete f.nota); marcar(g.filas, REGLAS[slug]?.porGrupo ? REGLAS[slug].porGrupo(g.nombre) : REGLAS[slug]?.torneo || []); return htmlTabla(g.filas, g.nombre || 'Posiciones', !!g.nombre); }).join('');
         if(CUADROS.includes(slug)){
