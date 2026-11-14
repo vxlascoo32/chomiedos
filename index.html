@@ -141,6 +141,11 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 .cam.ent{color:var(--acc)}
 .cam.sal{color:var(--live)}
 .sec{margin:22px 14px 8px;font:700 26px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.5px}
+.barra-inicio{display:flex;padding:12px 12px 0}
+.vivo-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border:2px solid var(--line);border-radius:999px;background:none;color:var(--ink);font:600 19px 'Barlow Condensed',sans-serif;letter-spacing:.3px;cursor:pointer}
+.vivo-btn:hover{border-color:var(--live)}
+.vivo-btn[aria-pressed="true"]{border-color:var(--live);background:color-mix(in srgb,var(--live) 14%,transparent)}
+.vivo-btn[aria-pressed="true"]::after{content:"✓";font-weight:700}
 .lg{margin:0;padding:14px 14px 4px;color:var(--mute);font:600 16px Barlow,sans-serif;letter-spacing:.2px}
 .llave-nav{display:flex;gap:8px;overflow-x:auto;padding:4px 12px 10px}
 .llave-nav button{flex:none;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:none;color:var(--ink);font:600 17px 'Barlow Condensed',sans-serif;cursor:pointer}
@@ -367,7 +372,7 @@ const REGLAS = {
   }
 };
 
-const S = {liga:0, vista:'inicio', sub:'clausura', fase:'liga', ficha:null, restaurar:null, vinoDeLista:false, fichaFoco:'', dia:{}, inicioDia:null, tk:0}; // dia: día elegido en cada liga
+const S = {liga:0, vista:'inicio', sub:'clausura', fase:'liga', soloVivo:false, ficha:null, restaurar:null, vinoDeLista:false, fichaFoco:'', dia:{}, inicioDia:null, tk:0}; // dia: día elegido en cada liga
 const cache = {};
 const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const color = c => /^#[0-9a-f]{6}$/i.test(c) ? c : '#888888';
@@ -1257,26 +1262,48 @@ async function cargar(cab, tk, slug){
   try{
     if(S.vista === 'inicio'){
       if(!S.inicioDia) S.inicioDia = iso(new Date());
-      const dia = S.inicioDia, partidos = [];
-      await Promise.all(LIGAS.map(async liga => {
-        try{
-          const D = await datosLiga(liga.espn);
-          let del = D.partidos.filter(p => p.dia === dia);
-          if(esReciente(dia) && (del.length || D.ausente)) del = await vivoPartidos(liga.espn, dia) || del;
-          del.forEach(p => partidos.push({...p, liga:liga.n, ligaSlug:liga.espn}));
-        }catch(e){ /* Una competición sin datos no impide mostrar las demás. */ }
-      }));
-      partidos.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
-      const hoy = iso(new Date()), man = new Date(dia+'T12:00');
-      const etiqueta = dia === hoy ? 'Hoy' : man.toLocaleDateString('es-AR', {weekday:'long'});
-      h += `<div class="fecha">
-        <button onclick="moverInicio(-1)" aria-label="Ver partidos del día anterior">‹</button>
-        <div><h3>${esc(etiqueta)}</h3><span>${man.toLocaleDateString('es-AR', {day:'numeric', month:'long', year:'numeric'})}</span></div>
-        <button onclick="moverInicio(1)" aria-label="Ver partidos del día siguiente">›</button></div>`;
-      const porLiga = [];
-      partidos.forEach(p => { let g = porLiga.find(x => x.n === p.liga); if(!g) porLiga.push(g = {n:p.liga, ps:[]}); g.ps.push(p); });
-      h += porLiga.length ? porLiga.map(g => `<h3 class="lg">${esc(g.n)}</h3><ul class="lista">${g.ps.map(p => htmlPartido(p, COPAS.includes(p.ligaSlug))).join('')}</ul>`).join('') :
-        '<p class="nota" role="status">No hay partidos programados para este día.</p>';
+      // partidos de todas las ligas en un día (con el Worker para ayer, hoy y mañana)
+      const partidosDe = async d => {
+        const lista = [];
+        await Promise.all(LIGAS.map(async liga => {
+          try{
+            const D = await datosLiga(liga.espn);
+            let del = D.partidos.filter(p => p.dia === d);
+            if(esReciente(d) && (del.length || D.ausente)) del = await vivoPartidos(liga.espn, d) || del;
+            del.forEach(p => lista.push({...p, liga:liga.n, ligaSlug:liga.espn}));
+          }catch(e){ /* Una competición sin datos no impide mostrar las demás. */ }
+        }));
+        return lista;
+      };
+      const porHora = (a, b) => String(a.fecha).localeCompare(String(b.fecha));
+      const agrupar = lista => {
+        const porLiga = [];
+        lista.forEach(p => { let g = porLiga.find(x => x.n === p.liga); if(!g) porLiga.push(g = {n:p.liga, ps:[]}); g.ps.push(p); });
+        return porLiga.map(g => `<h3 class="lg">${esc(g.n)}</h3><ul class="lista">${g.ps.map(p => htmlPartido(p, COPAS.includes(p.ligaSlug))).join('')}</ul>`).join('');
+      };
+      const boton = `<div class="barra-inicio"><button type="button" class="vivo-btn" data-k="solovivo" aria-pressed="${S.soloVivo}" onclick="S.soloVivo=!S.soloVivo;render()"><i class="punto" aria-hidden="true"></i>En vivo</button></div>`;
+      let partidos;
+      if(S.soloVivo){
+        // los que se están jugando ahora: de ayer (por si cruzan la medianoche) y de hoy, sin importar el día elegido
+        const ayer = new Date(); ayer.setDate(ayer.getDate() - 1);
+        const [d1, d2] = await Promise.all([partidosDe(iso(ayer)), partidosDe(iso(new Date()))]);
+        const vistos = new Set();
+        partidos = [...d1, ...d2].filter(p => p.estado === 'in' && !vistos.has(p.ligaSlug + '|' + p.id) && vistos.add(p.ligaSlug + '|' + p.id)).sort(porHora);
+        h += boton + (partidos.length
+          ? `<p class="nota" role="status">${partidos.length === 1 ? '1 partido en juego' : partidos.length + ' partidos en juego'} en este momento.</p>` + agrupar(partidos)
+          : '<p class="nota" role="status">No hay partidos en juego en este momento.</p>');
+      } else {
+        const dia = S.inicioDia;
+        partidos = (await partidosDe(dia)).sort(porHora);
+        const hoy = iso(new Date()), man = new Date(dia+'T12:00');
+        const etiqueta = dia === hoy ? 'Hoy' : man.toLocaleDateString('es-AR', {weekday:'long'});
+        h += boton + `<div class="fecha">
+          <button onclick="moverInicio(-1)" aria-label="Ver partidos del día anterior">‹</button>
+          <div><h3>${esc(etiqueta)}</h3><span>${man.toLocaleDateString('es-AR', {day:'numeric', month:'long', year:'numeric'})}</span></div>
+          <button onclick="moverInicio(1)" aria-label="Ver partidos del día siguiente">›</button></div>`;
+        h += partidos.length ? agrupar(partidos) : '<p class="nota" role="status">No hay partidos programados para este día.</p>';
+      }
+      activo = hayActividad(partidos);
     } else {
     const D = await datosLiga(slug);
     if(S.vista === 'partidos'){
