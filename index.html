@@ -210,6 +210,57 @@ dialog.modal::backdrop{background:rgba(0,0,0,.55)}
 .eq{font-size:17px}
 .sc{font-size:34px}
 }
+
+/* ===== Pulido visual ===== */
+body{background:radial-gradient(900px 320px at 50% -80px,color-mix(in srgb,var(--hd) 16%,transparent),transparent),var(--bg)}
+.hero{box-shadow:inset 0 -46px 60px -46px rgba(0,0,0,.4),0 3px 14px rgba(5,40,22,.25)}
+.hero p{opacity:.92;letter-spacing:.2px}
+.logo{transition:transform .25s}
+@media(hover:hover){.hero a.marca:hover .logo{transform:rotate(-10deg) scale(1.06)}}
+main{border-radius:22px;box-shadow:0 1px 2px rgba(10,40,25,.06),0 14px 34px rgba(10,40,25,.1)}
+.liga-btn{box-shadow:0 1px 2px rgba(10,40,25,.06),0 6px 16px rgba(10,40,25,.07)}
+.liga-btn:hover{box-shadow:0 1px 2px rgba(10,40,25,.08),0 8px 20px rgba(10,40,25,.12)}
+.seg{background:var(--tint)}
+.seg button{background:var(--panel)}
+.seg button[aria-pressed=true]{box-shadow:0 3px 10px color-mix(in srgb,var(--acc) 35%,transparent)}
+.seg.chico{background:none}
+.seg.chico button{background:none}
+.seg.chico button[aria-pressed=true]{background:var(--acc)}
+.lg{display:flex;align-items:center;gap:8px;padding:18px 14px 6px;font-size:17px;letter-spacing:.3px;text-transform:uppercase}
+.lg::before{content:"";width:5px;height:1.1em;border-radius:3px;background:var(--acc)}
+.mw{transition:background-color .15s}
+@media(hover:hover){.mw:hover{background:color-mix(in srgb,var(--acc) 7%,transparent)}.mw.envivo:hover{background:color-mix(in srgb,var(--live) 13%,transparent)}}
+.sc:not(.next){background:var(--tint);border:1px solid var(--line);border-radius:12px;padding:7px 2px 6px}
+.mw.envivo .sc:not(.next){border-color:color-mix(in srgb,var(--live) 45%,var(--line));background:color-mix(in srgb,var(--live) 8%,var(--panel))}
+.esc{filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.22))}
+.fecha{background:linear-gradient(var(--tint),color-mix(in srgb,var(--tint) 60%,var(--panel)))}
+.fecha button{box-shadow:0 1px 3px rgba(10,40,25,.12)}
+th{text-transform:uppercase;letter-spacing:.5px;font-size:13px}
+.zona{border-radius:16px;box-shadow:0 1px 2px rgba(10,40,25,.05)}
+.zona h3{font-size:25px}
+.gt tbody tr:first-child td,.gt tbody tr:first-child th{border-top:0}
+.gt td.pt{font-size:18px}
+.lazo{box-shadow:0 1px 3px rgba(10,40,25,.08);transition:box-shadow .15s,border-color .15s}
+@media(hover:hover){.lazo:hover{border-color:var(--acc);box-shadow:0 4px 14px rgba(10,40,25,.14)}}
+.rd h3{padding-bottom:6px;border-bottom:3px solid var(--acc);display:inline-block}
+.ficha .m{padding-top:12px}
+.ficha .esc{width:34px;height:34px}
+.ficha .sc:not(.next){font-size:46px;padding:9px 2px 8px}
+.ficha h3{display:flex;align-items:center;gap:8px}
+.ficha h3::before{content:"";width:5px;height:.95em;border-radius:3px;background:var(--acc)}
+.ficha section,.alin > div{min-width:0}
+.campeon{background:color-mix(in srgb,var(--acc) 9%,var(--panel));box-shadow:0 4px 16px color-mix(in srgb,var(--acc) 20%,transparent)}
+.tag{box-shadow:0 1px 0 rgba(0,0,0,.08)}
+.vivo-btn{box-shadow:0 1px 2px rgba(10,40,25,.06)}
+.vivo-btn:hover{background:color-mix(in srgb,var(--live) 6%,transparent)}
+.pie{padding-top:18px;font-size:15px}
+.tw,.llave,.llave-nav,.liga-lista{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--mute) 55%,transparent) transparent}
+@media(prefers-reduced-motion:no-preference){
+  .seg button,.vivo-btn,.liga-btn,.op,.fecha button,.atras,.llave-nav button{transition:background-color .15s,border-color .15s,box-shadow .15s,transform .1s}
+  .seg button:active,.vivo-btn:active,.atras:active,.llave-nav button:active{transform:scale(.97)}
+}
+@media(max-width:480px){main{border-radius:18px}.lg{padding-top:16px}.sc:not(.next){padding:6px 0 5px}}
+@media print{.hero,.liga-menu,.seg,.pie,.atras{display:none}main{box-shadow:none;border:0}}
 </style>
 </head>
 <body>
@@ -308,6 +359,7 @@ const LIGAS = [
   {n:'UEFA Europa League', espn:'uefa.europa', cod:'UEFA', g:'Copas internacionales'},
   {n:'Amistosos internacionales', espn:'fifa.friendly', cod:'FIFA', g:'Selecciones', sinPos:true},
   {n:'Copa del Mundo', espn:'fifa.world', cod:'FIFA', g:'Selecciones'},
+  {n:'Mundial Sub-17', espn:'fifa.world.u17', cod:'FIFA', g:'Selecciones'},
   {n:'UEFA Nations League', espn:'uefa.nations', cod:'UEFA', g:'Selecciones'},
 
   {n:'Premier League', espn:'eng.1', cod:'ING', g:'Europa'},
@@ -323,7 +375,7 @@ const PROXY = 'https://chomiedos.ginozuccotti2009.workers.dev';
 
 // Marcas de posiciones para las tablas que ESPN no marca: [desde, hasta, texto, color].
 // Los negativos cuentan desde el final (-1 = último). Es la misma lista que tiene actualizar.py.
-const COPAS = ['arg.copa','uru.copa_auf_uruguay','bra.copa_do_brazil','conmebol.libertadores','conmebol.sudamericana','uefa.champions','uefa.europa','arg.supercopa','fifa.world','uefa.nations'];
+const COPAS = ['arg.copa','uru.copa_auf_uruguay','bra.copa_do_brazil','conmebol.libertadores','conmebol.sudamericana','uefa.champions','uefa.europa','arg.supercopa','fifa.world','fifa.world.u17','uefa.nations'];
 const REGLAS = {
   // Libertadores: las mismas reglas en todos los grupos; reemplazan los textos que manda ESPN (que solo marca algunos grupos)
   // Nations League: las marcas dependen de la división (A, B, C o D), que se lee del nombre del grupo ("Group A1", "Group B3"...).
@@ -336,6 +388,7 @@ const REGLAS = {
       : div === 'C' ? [[1, 1, 'Ascenso', verde], [2, 2, 'Playoffs de ascenso', verdeClaro], [4, 4, 'Descenso o playoffs de descenso', rojo]]
       : div === 'D' ? [[1, 1, 'Ascenso', verde], [2, 2, 'Playoffs de ascenso', verdeClaro]] : [];
   }},
+  'fifa.world.u17': {reemplazar: true, torneo: [[1, 2, 'Clasifican a dieciseisavos de final', '#8fdcb4'], [3, 3, 'Los mejores terceros también clasifican', '#b7bfd1']]},
   'fifa.world': {reemplazar: true, torneo: [[1, 2, 'Clasifican a dieciseisavos de final', '#8fdcb4'], [3, 3, 'Los mejores terceros también clasifican', '#b7bfd1']]},
   'conmebol.sudamericana': {reemplazar: true, torneo: [[1, 1, 'Clasifica a octavos de final', '#8fdcb4'], [2, 2, 'Clasifica a los playoffs de octavos', '#b7bfd1']]},
   'conmebol.libertadores': {reemplazar: true, torneo: [[1, 2, 'Clasifican a octavos de final', '#8fdcb4'], [3, 3, 'Clasifica a los playoffs de la Sudamericana', '#b7bfd1']]},
@@ -389,7 +442,7 @@ function diaTexto(dia){
 /* ===== Nombres de selecciones en español =====
    ESPN manda los nombres en inglés. Se traducen apenas entran a la página (partidos, tablas, escudos y ficha),
    solo en las competiciones de selecciones. Un nombre que no está en la lista se muestra tal cual. */
-const SELECCIONES = new Set(['fifa.friendly', 'fifa.world', 'uefa.nations']);
+const SELECCIONES = new Set(['fifa.friendly', 'fifa.world', 'fifa.world.u17', 'uefa.nations']);
 const normNombre = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[.']/g, '').replace(/\s+/g, ' ').trim();
 const ES_SELECCIONES = (() => {
   const m = {};
@@ -837,7 +890,7 @@ async function vistaCol(D){
 /* ===== Cuadros de las copas (fases eliminatorias) =====
    Se arman con los partidos de cada ronda: los partidos entre los mismos dos equipos son un cruce (ida y vuelta).
    Gana el que suma más goles; si empatan, el que ganó por penales. Para sumar otra copa, agregarla a CUADROS. */
-const CUADROS = ['arg.copa', 'conmebol.libertadores', 'conmebol.sudamericana', 'fifa.world'];
+const CUADROS = ['arg.copa', 'conmebol.libertadores', 'conmebol.sudamericana', 'fifa.world', 'fifa.world.u17'];
 const IDA_VUELTA = {'conmebol.libertadores': ronda => !/^final$/i.test(ronda), 'conmebol.sudamericana': ronda => !/^final$/i.test(ronda)};   // rondas a doble partido, aunque todavía no esté la vuelta cargada
 const RE_FASE_GRUPOS = /grupo|group|fase de liga|league phase/i;
 const RE_ELIM = /final|octavos|cuartos|semi|dieciseis|treintaidos|round of|quarter|play-?offs?/i;   // rondas eliminatorias (para ligas que mezclan fase regular y playoffs)
@@ -1385,7 +1438,7 @@ async function cargar(cab, tk, slug){
       if(COPAS.includes(slug)){
         const EV = await partidosEnVivo(D, slug);
         FORMA = formaPorEquipo(EV.ps);
-        const tv = ['conmebol.libertadores', 'conmebol.sudamericana', 'uefa.champions', 'uefa.europa', 'fifa.world', 'uefa.nations'].includes(slug) ? await vivoTabla(slug) : null;   // solo estas tienen fase de grupos o de liga
+        const tv = ['conmebol.libertadores', 'conmebol.sudamericana', 'uefa.champions', 'uefa.europa', 'fifa.world', 'fifa.world.u17', 'uefa.nations'].includes(slug) ? await vivoTabla(slug) : null;   // solo estas tienen fase de grupos o de liga
         const grupos = (tv || D.tabla || []).filter(g => g.filas?.length);
         const htmlGrupos = () => grupos.map(g => { if(REGLAS[slug]?.reemplazar) g.filas.forEach(f => delete f.nota); marcar(g.filas, REGLAS[slug]?.porGrupo ? REGLAS[slug].porGrupo(g.nombre) : REGLAS[slug]?.torneo || []); return htmlTabla(g.filas, g.nombre || 'Posiciones', !!g.nombre); }).join('');
         if(CUADROS.includes(slug)){

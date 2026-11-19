@@ -36,6 +36,7 @@ LIGAS = {
     'arg.supercopa': date(2026, 1, 1),    # Supercopa Argentina
     'fifa.friendly': date(2026, 1, 1),    # Amistosos internacionales (selecciones)
     'fifa.world': date(2026, 6, 1),       # Copa del Mundo 2026
+    'fifa.world.u17': date(2026, 11, 1),  # Mundial Sub-17
     'uefa.nations': date(2026, 9, 1),     # UEFA Nations League
     'uefa.champions': date(2026, 9, 1),   # UEFA Champions League
     'uefa.europa': date(2026, 9, 1),      # UEFA Europa League
