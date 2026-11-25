@@ -147,6 +147,33 @@ td:last-child{font:700 24px 'Barlow Condensed',sans-serif;color:var(--acc)}
 .ord button + button{border-left:2px solid var(--line)}
 .ord button[aria-pressed="true"]{background:var(--acc);color:var(--onacc)}
 @media(hover:hover){.ord button[aria-pressed="false"]:hover{background:var(--tint)}}
+.eqlink{color:inherit;text-decoration:none;border-radius:4px}
+.eqlink:hover{text-decoration:underline;text-underline-offset:3px}
+.eqlink:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.mis-equipos{display:flex;gap:8px;overflow-x:auto;padding:10px 12px 2px}
+.chip-eq{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px 0 10px;border:2px solid var(--line);border-radius:999px;color:inherit;text-decoration:none;font:600 17px Barlow,sans-serif;background:var(--panel)}
+.chip-eq:hover{border-color:var(--acc)}
+.chip-eq:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.pista{margin:8px 14px 0;color:var(--mute);font-size:15px}
+.equipo{padding:4px 0 24px}
+.equipo-cab{display:flex;align-items:center;gap:14px;padding:16px 14px 6px}
+.equipo-cab > .esc{width:56px;height:56px}
+.equipo-cab h2{margin:0;font:700 34px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.4px}
+.equipo-cab p{margin:4px 0 0;color:var(--mute);font-size:15px}
+.equipo-cab > div{flex:1;min-width:0}
+.seguir{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 18px;border:2px solid var(--line);border-radius:999px;background:none;color:var(--ink);font:600 19px 'Barlow Condensed',sans-serif;cursor:pointer}
+.seguir:hover{border-color:var(--acc)}
+.seguir[aria-pressed="true"]{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,transparent)}
+.equipo h3{display:flex;align-items:center;gap:8px;margin:20px 14px 6px;font:700 24px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.5px}
+.equipo h3::before{content:"";width:5px;height:.95em;border-radius:3px;background:var(--acc)}
+.forma{display:flex;align-items:center;gap:4px;margin:6px 14px 0;color:var(--mute);font-size:15px}
+.forma > span:first-child{margin-right:8px}
+.posic{list-style:none;margin:0;padding:0 14px}
+.posic li{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.posic li span{flex:1}
+.posic b{font:700 22px 'Barlow Condensed',sans-serif}
+.posic small{color:var(--mute);font-size:14px;min-width:92px;text-align:right}
+@media(max-width:480px){.equipo-cab{flex-wrap:wrap}.equipo-cab > div{flex-basis:calc(100% - 80px)}.seguir{margin-left:70px}}
 .ligaeti{padding:12px 14px 0;color:var(--mute);font:600 14px Barlow,sans-serif;letter-spacing:.4px;text-transform:uppercase}
 .vivo-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border:2px solid var(--line);border-radius:999px;background:none;color:var(--ink);font:600 19px 'Barlow Condensed',sans-serif;letter-spacing:.3px;cursor:pointer}
 .vivo-btn:hover{border-color:var(--live)}
@@ -318,7 +345,7 @@ th{text-transform:uppercase;letter-spacing:.5px;font-size:13px}
     <p>Ninguno. La página no pide registro, no tiene cuentas, formularios ni comentarios, no usa cookies propias y no incluye herramientas de estadísticas ni de publicidad. No sé quién la visita ni qué mirás en ella.</p>
 
     <h3>Qué se guarda en tu dispositivo</h3>
-    <p>Solo una marca en el almacenamiento local de tu navegador (<em>localStorage</em>) para no mostrarte el aviso de bienvenida más de una vez. No contiene datos personales y no sale de tu dispositivo. Podés borrarla cuando quieras desde los datos del sitio en tu navegador.</p>
+    <p>Dos cosas, ambas en el almacenamiento local de tu navegador (<em>localStorage</em>): una marca para no mostrarte el aviso de bienvenida más de una vez y, si usás la función de seguir equipos, la lista de los equipos que elegiste. No contienen datos personales y no salen de tu dispositivo: yo no las recibo. Podés borrarlas cuando quieras desde los datos del sitio en tu navegador, y los equipos también se dejan de seguir desde la página de cada equipo.</p>
 
     <h3>Servicios de terceros</h3>
     <p>Para funcionar, la página se apoya en servicios externos. Al usarla, tu navegador se conecta con ellos y ellos pueden recibir datos técnicos como tu dirección IP, según sus propias políticas:</p>
@@ -377,6 +404,87 @@ const LIGAS = [
 /* Casi en tiempo real: pegá acá la dirección de tu Worker de Cloudflare
    (por ejemplo 'https://chomiedos.tuusuario.workers.dev'). Si queda vacío,
    la página usa solo los datos que guarda GitHub. */
+/* ===== CONFIGURACIÓN DE LA TEMPORADA =====
+   Todo lo que cambia de un año al otro está en este bloque (y, del lado de Python, al principio de actualizar.py).
+   Al empezar una temporada nueva hay que revisar, en este orden (el detalle está en CAMBIO_DE_TEMPORADA.md):
+   1. anio y las fechas de cada torneo (ventanas): son las fechas límite que separan Apertura, Intermedio y Clausura.
+   2. Los equipos de cada liga (nombres, claves y grupos del Intermedio), por los ascensos y descensos.
+   3. Los puntos de menos por decisión de la Federación (ajustes).
+   4. Los promedios: sumar la temporada que terminó, sacar la más vieja y volver a cargar los partidos previos.
+   Las fechas están en UTC y con el formato de ESPN (AAAA-MM-DDTHH:MMZ). */
+const TEMPORADA = {
+  anio: 2026,
+  arg: {
+    ventanas: {apertura: ['2026-01-01T00:00Z', '2026-07-01T00:00Z'], clausura: ['2026-07-01T00:00Z', null]},
+    partidos: {apertura: 16, clausura: 15},   // partidos de la fase regular de cada torneo (los playoffs no cuentan)
+    claves: [['central_cordoba', /central cordoba/], ['rosario', /rosario|^central$/], ['independiente_riv', /independiente (rivadavia|riv)/],
+  ['independiente', /independiente/], ['estudiantes_rc', /rio cuarto|estudiantes rc/], ['estudiantes', /estudiantes/], ['gimnasia_m', /mendoza|\(m\)/],
+  ['gimnasia', /gimnasia/], ['boca', /boca/], ['river', /river/], ['argentinos', /argentinos/], ['velez', /velez/], ['racing', /racing/],
+  ['lanus', /lanus/], ['huracan', /huracan/], ['talleres', /talleres/], ['defensa', /defensa/], ['barracas', /barracas/],
+  ['instituto', /instituto/], ['union', /union/], ['san_lorenzo', /san lorenzo/], ['belgrano', /belgrano/], ['platense', /platense/],
+  ['tigre', /tigre/], ['riestra', /riestra/], ['newells', /newell/], ['tucuman', /tucuman/], ['sarmiento', /sarmiento/],
+  ['banfield', /banfield/], ['aldosivi', /aldosivi/]],
+  },
+  uru: {
+  ventanas: {
+    apertura:   ['2026-01-01T00:00Z', '2026-05-13T00:00Z'],   // 15 fechas, hasta el 11 de mayo
+    intermedio: ['2026-05-13T00:00Z', '2026-08-06T12:00Z'],   // del 15 de mayo al 5 de agosto (final incluida)
+    clausura:   ['2026-08-06T12:00Z', null]                   // desde el 7 de agosto
+  },
+  nombres: {penarol:'Peñarol', cerro_largo:'Cerro Largo', racing:'Racing', liverpool:'Liverpool', central_espanol:'Central Español',
+    cerro:'Cerro', defensor:'Defensor Sp.', boston_river:'Boston River', wanderers:'Wanderers', nacional:'Nacional',
+    maldonado:'Deportivo Maldonado', city_torque:'City Torque', juventud:'Juventud', albion:'Albion', progreso:'Progreso', danubio:'Danubio'},
+  claves: [['cerro_largo', /cerro largo/], ['central_espanol', /central espanol/], ['cerro', /\bcerro\b/], ['penarol', /penarol/],
+    ['nacional', /nacional/], ['defensor', /defensor/], ['danubio', /danubio/], ['wanderers', /wanderers/], ['liverpool', /liverpool/],
+    ['racing', /racing/], ['boston_river', /boston/], ['city_torque', /torque/], ['maldonado', /maldonado/], ['juventud', /juventud/],
+    ['albion', /albion/], ['progreso', /progreso/]],
+  grupos: {
+    'Grupo A': ['penarol', 'cerro_largo', 'racing', 'liverpool', 'central_espanol', 'cerro', 'defensor', 'boston_river'],
+    'Grupo B': ['wanderers', 'nacional', 'maldonado', 'city_torque', 'juventud', 'albion', 'progreso', 'danubio']
+  },
+  // Puntos de menos por decisión de la Federación (cada uno se descuenta una sola vez en la anual)
+  ajustes: {
+    intermedio: {cerro: [-1, 'Decisión de la Federación']},
+    clausura: {penarol: [-1, 'Decisión de la Federación']},
+    anual: {cerro: [-1, 'Decisión de la Federación'], penarol: [-1, 'Decisión de la Federación']}
+  }},
+  col: {
+    ventanas: {apertura: ['2026-01-01T00:00Z', '2026-07-01T00:00Z'], clausura: ['2026-07-01T00:00Z', null]},
+    claves: [['inter_bogota', /bogota/], ['america', /america/], ['cali', /\bcali\b/], ['nacional', /atletico nacional|^nacional\b/], ['tolima', /tolima/], ['santa_fe', /santa fe/],
+  ['bucaramanga', /bucaramanga/], ['millonarios', /millonarios/], ['junior', /junior|barranquilla/], ['medellin', /medellin/],
+  ['once_caldas', /caldas/], ['aguilas', /aguilas/], ['pasto', /pasto/], ['fortaleza', /fortaleza/], ['pereira', /pereira/],
+  ['llaneros', /llaneros/], ['alianza', /alianza/], ['cucuta', /cucuta/], ['boyaca', /boyaca/],
+  ['jaguares', /jaguares/]],
+  },
+  // Promedios: [clave, nombre, {año: puntos}, partidos de las temporadas anteriores]
+  promedios: {
+  'arg.1': {años:[2024, 2025, 2026], descenso:1, equipos:[
+    ['boca','Boca Jrs.',{2024:67,2025:62},73], ['river','River',{2024:70,2025:53},73], ['argentinos','Argentinos',{2024:56,2025:57},73],
+    ['rosario','Central',{2024:47,2025:66},73], ['velez','Vélez',{2024:76,2025:40},73], ['racing','Racing',{2024:70,2025:53},73],
+    ['lanus','Lanús',{2024:59,2025:50},73], ['independiente','Independiente',{2024:63,2025:47},73], ['estudiantes','Estudiantes',{2024:63,2025:42},73],
+    ['huracan','Huracán',{2024:62,2025:47},73], ['independiente_riv','Independiente Riv.',{2024:46,2025:43},73], ['talleres','Talleres',{2024:72,2025:34},73],
+    ['defensa','Defensa',{2024:58,2025:38},73], ['barracas','Barracas',{2024:49,2025:49},73], ['instituto','Instituto',{2024:53,2025:34},73],
+    ['gimnasia','Gimnasia',{2024:48,2025:38},73], ['union','Unión',{2024:60,2025:39},73], ['san_lorenzo','San Lorenzo',{2024:45,2025:51},73],
+    ['belgrano','Belgrano',{2024:49,2025:47},73], ['gimnasia_m','Gimnasia (M)',{},0], ['platense','Platense',{2024:57,2025:35},73],
+    ['tigre','Tigre',{2024:39,2025:49},73], ['riestra','Riestra',{2024:48,2025:52},73], ['newells',"Newell's",{2024:49,2025:33},73],
+    ['tucuman','Atl. Tucumán',{2024:50,2025:34},73], ['sarmiento','Sarmiento',{2024:35,2025:35},73], ['central_cordoba','Central Córdoba',{2024:42,2025:42},73],
+    ['banfield','Banfield',{2024:41,2025:35},73], ['aldosivi','Aldosivi',{2025:33},32], ['estudiantes_rc','Estudiantes RC',{},0]]},
+  'col.1': {años:[2026, 2025, 2024], descenso:2, equipos:[
+    ['nacional','Atlético Nacional',{2025:72,2024:56},76], ['tolima','Tolima',{2025:74,2024:72},76], ['america','América de Cali',{2025:68,2024:62},76],
+    ['santa_fe','Santa Fe',{2025:64,2024:71},76], ['bucaramanga','Bucaramanga',{2025:66,2024:66},76], ['millonarios','Millonarios',{2025:64,2024:66},76],
+    ['junior','Junior',{2025:72,2024:60},76], ['medellin','Independiente Medellín',{2025:72,2024:58},76], ['once_caldas','Once Caldas',{2025:60,2024:60},76],
+    ['aguilas','Águilas',{2025:48,2024:46},76], ['pasto','Pasto',{2025:48,2024:49},76], ['cali','Cali',{2025:45,2024:38},76],
+    ['fortaleza','Fortaleza FC',{2025:55,2024:51},76], ['pereira','Pereira',{2025:46,2024:61},76], ['llaneros','Llaneros FC',{2025:45},38],
+    ['inter_bogota','Inter Bogotá',{2025:24,2024:55},76], ['alianza','Alianza FC',{2025:58,2024:33},76], ['cucuta','Cúcuta',{},0],
+    ['boyaca','Boyacá Chicó',{2025:36,2024:33},76], ['jaguares','Jaguares',{},0]]},
+  'uru.1': {años:[2025, 2026], descenso:3, equipos:[
+    ['penarol','Peñarol',{2025:78},37], ['nacional','Nacional',{2025:79},37], ['maldonado','Deportivo Maldonado',{},0],
+    ['liverpool','Liverpool',{2025:65},37], ['racing','Racing',{2025:53},37], ['city_torque','City Torque',{2025:49},37],
+    ['juventud','Juventud',{2025:61},37], ['defensor','Defensor Sp.',{2025:61},37], ['albion','Albion',{},0],
+    ['boston_river','Boston River',{2025:55},37], ['cerro_largo','Cerro Largo',{2025:49},37], ['central_espanol','Central Español',{},0],
+    ['wanderers','Wanderers',{2025:31},37], ['cerro','Cerro',{2025:46},37], ['danubio','Danubio',{2025:43},37], ['progreso','Progreso',{2025:39},37]]}}
+};
+
 const PROXY = 'https://chomiedos.ginozuccotti2009.workers.dev';
 
 // Marcas de posiciones para las tablas que ESPN no marca: [desde, hasta, texto, color].
@@ -430,7 +538,7 @@ const REGLAS = {
   }
 };
 
-const S = {liga:0, vista:'inicio', sub:'clausura', fase:'liga', soloVivo:false, orden:'liga', ficha:null, restaurar:null, vinoDeLista:false, fichaFoco:'', dia:{}, inicioDia:null, tk:0}; // dia: día elegido en cada liga
+const S = {liga:0, vista:'inicio', sub:'clausura', fase:'liga', soloVivo:false, orden:'liga', ficha:null, equipo:null, refoco:'', restaurar:null, vinoDeLista:false, fichaFoco:'', dia:{}, inicioDia:null, tk:0}; // dia: día elegido en cada liga
 const cache = {};
 const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const color = c => /^#[0-9a-f]{6}$/i.test(c) ? c : '#888888';
@@ -628,8 +736,9 @@ function tablasPorZonas(partidos, tablas, slug, desde, hasta, limitePorEquipo = 
 
 // Suma la fase regular de Apertura y Clausura; en Argentina excluye los playoffs.
 function tablaAnual(partidos, slug){
-  const apertura = tablaPeriodo(partidos, '2026-01-01T00:00:00Z', '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0);
-  const clausura = tablaPeriodo(partidos, '2026-07-01T00:00:00Z', null, slug === 'arg.1' ? 15 : 0);
+  const V = TEMPORADA.arg.ventanas, N = TEMPORADA.arg.partidos;
+  const apertura = tablaPeriodo(partidos, V.apertura[0], V.apertura[1], slug === 'arg.1' ? N.apertura : 0);
+  const clausura = tablaPeriodo(partidos, V.clausura[0], null, slug === 'arg.1' ? N.clausura : 0);
   const filas = {};
   apertura.concat(clausura).forEach(f => {
     const t = filas[f.n] = filas[f.n] || {n:f.n, pj:0, g:0, e:0, p:0, gf:0, gc:0};
@@ -645,30 +754,7 @@ function tablaAnual(partidos, slug){
    Cada torneo tiene su ventana de fechas (UTC, mismo formato que ESPN). Adentro de cada una, cada cruce cuenta
    una sola vez: así no entran las finales ni los desempates, y el Intermedio solo cuenta los partidos de cada zona.
    Es la misma lógica que tiene actualizar.py: si cambiás una, cambiá la otra. */
-const URU = {
-  ventanas: {
-    apertura:   ['2026-01-01T00:00Z', '2026-05-13T00:00Z'],   // 15 fechas, hasta el 11 de mayo
-    intermedio: ['2026-05-13T00:00Z', '2026-08-06T12:00Z'],   // del 15 de mayo al 5 de agosto (final incluida)
-    clausura:   ['2026-08-06T12:00Z', null]                   // desde el 7 de agosto
-  },
-  nombres: {penarol:'Peñarol', cerro_largo:'Cerro Largo', racing:'Racing', liverpool:'Liverpool', central_espanol:'Central Español',
-    cerro:'Cerro', defensor:'Defensor Sp.', boston_river:'Boston River', wanderers:'Wanderers', nacional:'Nacional',
-    maldonado:'Deportivo Maldonado', city_torque:'City Torque', juventud:'Juventud', albion:'Albion', progreso:'Progreso', danubio:'Danubio'},
-  claves: [['cerro_largo', /cerro largo/], ['central_espanol', /central espanol/], ['cerro', /\bcerro\b/], ['penarol', /penarol/],
-    ['nacional', /nacional/], ['defensor', /defensor/], ['danubio', /danubio/], ['wanderers', /wanderers/], ['liverpool', /liverpool/],
-    ['racing', /racing/], ['boston_river', /boston/], ['city_torque', /torque/], ['maldonado', /maldonado/], ['juventud', /juventud/],
-    ['albion', /albion/], ['progreso', /progreso/]],
-  grupos: {
-    'Grupo A': ['penarol', 'cerro_largo', 'racing', 'liverpool', 'central_espanol', 'cerro', 'defensor', 'boston_river'],
-    'Grupo B': ['wanderers', 'nacional', 'maldonado', 'city_torque', 'juventud', 'albion', 'progreso', 'danubio']
-  },
-  // Puntos de menos por decisión de la Federación (cada uno se descuenta una sola vez en la anual)
-  ajustes: {
-    intermedio: {cerro: [-1, 'Decisión de la Federación']},
-    clausura: {penarol: [-1, 'Decisión de la Federación']},
-    anual: {cerro: [-1, 'Decisión de la Federación'], penarol: [-1, 'Decisión de la Federación']}
-  }
-};
+const URU = TEMPORADA.uru;
 function claveUru(nombre){
   const t = String(nombre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const c = URU.claves.find(([k, re]) => re.test(t));
@@ -756,49 +842,13 @@ const mkClave = lista => n => {
   const c = lista.find(([k, re]) => re.test(t));
   return c ? c[0] : t;
 };
-const claveArg = mkClave([['central_cordoba', /central cordoba/], ['rosario', /rosario|^central$/], ['independiente_riv', /independiente (rivadavia|riv)/],
-  ['independiente', /independiente/], ['estudiantes_rc', /rio cuarto|estudiantes rc/], ['estudiantes', /estudiantes/], ['gimnasia_m', /mendoza|\(m\)/],
-  ['gimnasia', /gimnasia/], ['boca', /boca/], ['river', /river/], ['argentinos', /argentinos/], ['velez', /velez/], ['racing', /racing/],
-  ['lanus', /lanus/], ['huracan', /huracan/], ['talleres', /talleres/], ['defensa', /defensa/], ['barracas', /barracas/],
-  ['instituto', /instituto/], ['union', /union/], ['san_lorenzo', /san lorenzo/], ['belgrano', /belgrano/], ['platense', /platense/],
-  ['tigre', /tigre/], ['riestra', /riestra/], ['newells', /newell/], ['tucuman', /tucuman/], ['sarmiento', /sarmiento/],
-  ['banfield', /banfield/], ['aldosivi', /aldosivi/]]);
-const claveCol = mkClave([['inter_bogota', /bogota/], ['america', /america/], ['cali', /\bcali\b/], ['nacional', /atletico nacional|^nacional\b/], ['tolima', /tolima/], ['santa_fe', /santa fe/],
-  ['bucaramanga', /bucaramanga/], ['millonarios', /millonarios/], ['junior', /junior|barranquilla/], ['medellin', /medellin/],
-  ['once_caldas', /caldas/], ['aguilas', /aguilas/], ['pasto', /pasto/], ['fortaleza', /fortaleza/], ['pereira', /pereira/],
-  ['llaneros', /llaneros/], ['alianza', /alianza/], ['cucuta', /cucuta/], ['boyaca', /boyaca/],
-  ['jaguares', /jaguares/]]);
+const claveArg = mkClave(TEMPORADA.arg.claves);
+const claveCol = mkClave(TEMPORADA.col.claves);
 const CLAVE_LIGA = {'uru.1': claveUru, 'col.1': claveCol, 'arg.1': claveArg};
 
-const PROM = {
-  'arg.1': {años:[2024, 2025, 2026], descenso:1, equipos:[
-    ['boca','Boca Jrs.',{2024:67,2025:62},73], ['river','River',{2024:70,2025:53},73], ['argentinos','Argentinos',{2024:56,2025:57},73],
-    ['rosario','Central',{2024:47,2025:66},73], ['velez','Vélez',{2024:76,2025:40},73], ['racing','Racing',{2024:70,2025:53},73],
-    ['lanus','Lanús',{2024:59,2025:50},73], ['independiente','Independiente',{2024:63,2025:47},73], ['estudiantes','Estudiantes',{2024:63,2025:42},73],
-    ['huracan','Huracán',{2024:62,2025:47},73], ['independiente_riv','Independiente Riv.',{2024:46,2025:43},73], ['talleres','Talleres',{2024:72,2025:34},73],
-    ['defensa','Defensa',{2024:58,2025:38},73], ['barracas','Barracas',{2024:49,2025:49},73], ['instituto','Instituto',{2024:53,2025:34},73],
-    ['gimnasia','Gimnasia',{2024:48,2025:38},73], ['union','Unión',{2024:60,2025:39},73], ['san_lorenzo','San Lorenzo',{2024:45,2025:51},73],
-    ['belgrano','Belgrano',{2024:49,2025:47},73], ['gimnasia_m','Gimnasia (M)',{},0], ['platense','Platense',{2024:57,2025:35},73],
-    ['tigre','Tigre',{2024:39,2025:49},73], ['riestra','Riestra',{2024:48,2025:52},73], ['newells',"Newell's",{2024:49,2025:33},73],
-    ['tucuman','Atl. Tucumán',{2024:50,2025:34},73], ['sarmiento','Sarmiento',{2024:35,2025:35},73], ['central_cordoba','Central Córdoba',{2024:42,2025:42},73],
-    ['banfield','Banfield',{2024:41,2025:35},73], ['aldosivi','Aldosivi',{2025:33},32], ['estudiantes_rc','Estudiantes RC',{},0]]},
-  'col.1': {años:[2026, 2025, 2024], descenso:2, equipos:[
-    ['nacional','Atlético Nacional',{2025:72,2024:56},76], ['tolima','Tolima',{2025:74,2024:72},76], ['america','América de Cali',{2025:68,2024:62},76],
-    ['santa_fe','Santa Fe',{2025:64,2024:71},76], ['bucaramanga','Bucaramanga',{2025:66,2024:66},76], ['millonarios','Millonarios',{2025:64,2024:66},76],
-    ['junior','Junior',{2025:72,2024:60},76], ['medellin','Independiente Medellín',{2025:72,2024:58},76], ['once_caldas','Once Caldas',{2025:60,2024:60},76],
-    ['aguilas','Águilas',{2025:48,2024:46},76], ['pasto','Pasto',{2025:48,2024:49},76], ['cali','Cali',{2025:45,2024:38},76],
-    ['fortaleza','Fortaleza FC',{2025:55,2024:51},76], ['pereira','Pereira',{2025:46,2024:61},76], ['llaneros','Llaneros FC',{2025:45},38],
-    ['inter_bogota','Inter Bogotá',{2025:24,2024:55},76], ['alianza','Alianza FC',{2025:58,2024:33},76], ['cucuta','Cúcuta',{},0],
-    ['boyaca','Boyacá Chicó',{2025:36,2024:33},76], ['jaguares','Jaguares',{},0]]},
-  'uru.1': {años:[2025, 2026], descenso:3, equipos:[
-    ['penarol','Peñarol',{2025:78},37], ['nacional','Nacional',{2025:79},37], ['maldonado','Deportivo Maldonado',{},0],
-    ['liverpool','Liverpool',{2025:65},37], ['racing','Racing',{2025:53},37], ['city_torque','City Torque',{2025:49},37],
-    ['juventud','Juventud',{2025:61},37], ['defensor','Defensor Sp.',{2025:61},37], ['albion','Albion',{},0],
-    ['boston_river','Boston River',{2025:55},37], ['cerro_largo','Cerro Largo',{2025:49},37], ['central_espanol','Central Español',{},0],
-    ['wanderers','Wanderers',{2025:31},37], ['cerro','Cerro',{2025:46},37], ['danubio','Danubio',{2025:43},37], ['progreso','Progreso',{2025:39},37]]}
-};
+const PROM = TEMPORADA.promedios;
 
-// filas26: tabla de la temporada 2026 (con n, pts, pj). Devuelve las filas ordenadas, con las columnas por temporada.
+// filas26: tabla de la temporada actual (con n, pts, pj). Devuelve las filas ordenadas, con las columnas por temporada.
 function tablaPromedios(slug, filas26){
   const C = PROM[slug], clave = CLAVE_LIGA[slug], act = {}, sinHistorial = [];
   filas26.forEach(f => { act[clave(f.n)] = {n:f.n, pts:f.pts, pj:f.pj}; });
@@ -806,7 +856,7 @@ function tablaPromedios(slug, filas26){
   Object.keys(act).forEach(k => { if(!base.some(e => e[0] === k)){ base.push([k, act[k].n, {}, 0]); sinHistorial.push(act[k].n); } });
   const filas = base.map(([k, n, hist, pjPrev]) => {
     const a = act[k] || {pts:0, pj:0};
-    const vals = C.años.map(y => y === 2026 ? a.pts : (hist[y] || 0));
+    const vals = C.años.map(y => y === TEMPORADA.anio ? a.pts : (hist[y] || 0));
     const pts = vals.reduce((x, y) => x + y, 0), pj = pjPrev + a.pj;
     return {k, n, vals, pts, pj, pts26:a.pts, prom:pj ? pts / pj : 0};
   }).sort((x, y) => +y.prom.toFixed(6) - +x.prom.toFixed(6) || y.pts26 - x.pts26 || x.n.localeCompare(y.n));
@@ -826,16 +876,16 @@ function htmlPromedios(slug, filas26){
     ${P.años.map(y => th(String(y).slice(2), 'Puntos en ' + y)).join('')}
     </tr></thead><tbody>` +
     P.filas.map((f, i) => `<tr><td><span class="pos"${f.nota ? ` style="background:${color(f.nota.c)};color:${tinta(f.nota.c)}"` : ''}>${i + 1}</span>${f.nota ? `<span class="sr"> (${esc(f.nota.d)})</span>` : ''}</td>
-      <th scope="row"><span class="nom">${escudo(slug, f.n, f.k)}<span>${esc(f.n)}</span></span></th><td class="pt">${f.prom.toFixed(3)}</td><td>${f.pts}</td><td>${f.pj}</td>${f.vals.map(v => `<td>${v}</td>`).join('')}</tr>`).join('') +
+      <th scope="row"><span class="nom">${escudo(slug, f.n, f.k)}<a class="eqlink" href="${hrefEquipo(slug, nombreReal(slug, f.n, f.k))}">${esc(f.n)}</a></span></th><td class="pt">${f.prom.toFixed(3)}</td><td>${f.pts}</td><td>${f.pj}</td>${f.vals.map(v => `<td>${v}</td>`).join('')}</tr>`).join('') +
     `</tbody></table></div>` +
     (ley.length ? `<div class="zpie">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '') + `</section>` +
-    `<p class="nota">Promedio = puntos / partidos jugados desde ${desde} hasta 2026. Los equipos ascendidos cuentan solo las temporadas que jugaron en primera. Si hay empate, desempata el puntaje de 2026.</p>` +
-    (P.sinHistorial.length ? `<p class="nota" role="status">Sin historial cargado (solo cuenta 2026): ${P.sinHistorial.map(esc).join(', ')}.</p>` : '');
+    `<p class="nota">Promedio = puntos / partidos jugados desde ${desde} hasta ${TEMPORADA.anio}. Los equipos ascendidos cuentan solo las temporadas que jugaron en primera. Si hay empate, desempata el puntaje de ${TEMPORADA.anio}.</p>` +
+    (P.sinHistorial.length ? `<p class="nota" role="status">Sin historial cargado (solo cuenta ${TEMPORADA.anio}): ${P.sinHistorial.map(esc).join(', ')}.</p>` : '');
 }
 
 // Liga colombiana: Apertura y Clausura (todos contra todos de 19 fechas) y la anual, que suma los dos.
 const COL = {
-  ventanas: {apertura: ['2026-01-01T00:00Z', '2026-07-01T00:00Z'], clausura: ['2026-07-01T00:00Z', null]},
+  ventanas: TEMPORADA.col.ventanas,
   nombres: Object.fromEntries(PROM['col.1'].equipos.map(e => [e[0], e[1]]))
 };
 function tablaCol(partidos, torneo){
@@ -878,6 +928,7 @@ async function vistaCol(D){
   if(!opciones.some(o => o[0] === S.sub)) S.sub = 'clausura';
   let h = `<div class="seg chico" role="group" aria-label="Tipo de tabla">` + opciones.map(([k, t]) =>
     `<button data-k="s-${k}" aria-pressed="${S.sub === k}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
+  h += avisoTemporada();
   if(S.sub === 'apertura' || S.sub === 'clausura'){
     const f = tablaCol(ps, S.sub);
     marcar(f, REGLAS['col.1'][S.sub]);
@@ -958,7 +1009,7 @@ function htmlLazo(slug, z){
     const n = i === 0 ? z.a : z.b, gana = z.ganador === i, pierde = z.ganador === 1 - i;
     const partes = z.filas[i].map(v => `<i>${v == null ? '–' : v}</i>`).join('');
     const total = z.dobles ? `<b>${z.filas[i].some(v => v != null) ? z.g[i] : '–'}</b>` : '';
-    return `<div class="lz ${gana ? 'w' : ''} ${pierde ? 'perd' : ''}"><span class="nm">${escudo(slug, n)}<span>${esc(n)}</span></span><span class="tg">${z.dobles ? partes + total : (z.filas[i][0] == null ? '<i>–</i>' : `<b>${z.filas[i][0]}</b>`)}</span></div>`;
+    return `<div class="lz ${gana ? 'w' : ''} ${pierde ? 'perd' : ''}"><span class="nm">${escudo(slug, n)}<a class="eqlink" href="${hrefEquipo(slug, n)}">${esc(n)}</a></span><span class="tg">${z.dobles ? partes + total : (z.filas[i][0] == null ? '<i>–</i>' : `<b>${z.filas[i][0]}</b>`)}</span></div>`;
   };
   let pie = '';
   if(z.vivo) pie = 'En vivo';
@@ -999,7 +1050,7 @@ function htmlPlayoffs(slug, ps, torneo){
   const ap = torneo === 'apertura';
   return htmlCuadro(slug, ps, {
     k: '-' + torneo, soloElim: true, campeonDe: ap ? 'Apertura' : 'Clausura',
-    desde: ap ? '2026-01-01T00:00Z' : '2026-07-01T00:00Z', hasta: ap ? '2026-07-01T00:00Z' : null,
+    desde: TEMPORADA.arg.ventanas[ap ? 'apertura' : 'clausura'][0], hasta: ap ? TEMPORADA.arg.ventanas.apertura[1] : null,
     vacio: ap ? 'Todavía no hay cruces de playoffs cargados.' : 'Los playoffs del Clausura se van a mostrar acá cuando empiecen, con los clasificados de la fase regular.'
   });
 }
@@ -1012,6 +1063,7 @@ async function vistaUru(D){
   if(!opciones.some(o => o[0] === S.sub)) S.sub = 'apertura';
   let h = `<div class="seg chico" role="group" aria-label="Tipo de tabla">` + opciones.map(([k, t]) =>
     `<button data-k="s-${k}" aria-pressed="${S.sub === k}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
+  h += avisoTemporada();
   if(S.sub === 'apertura'){
     const f = tablaUru(ps, 'apertura'); marcarCampeon(f, 'Apertura');
     h += htmlTabla(f, 'Torneo Apertura') + '<p class="nota">15 fechas, todos contra todos.</p>';
@@ -1137,7 +1189,7 @@ function htmlTabla(filas, titulo, mostrarTitulo = false){
     ${th('+/-', 'Diferencia de gol')}${th('G', 'Ganados')}${th('E', 'Empatados')}${th('P', 'Perdidos')}${conProm ? th('Prom.', 'Promedio de puntos por partido') : ''}${conUlt ? th('Últimas', 'Últimos 5 resultados, el más reciente a la derecha') : ''}
     </tr></thead><tbody>` +
     filas.map((f, i) => `<tr><td><span class="pos"${f.nota ? ` style="background:${color(f.nota.c)};color:${tinta(f.nota.c)}"` : ''}>${i + 1}</span>${f.nota ? `<span class="sr"> (${esc(f.nota.d)})</span>` : ''}</td>
-      <th scope="row"><span class="nom">${escudo(LIGAS[S.liga].espn, f.n, f.k)}<span>${esc(f.n)}</span></span></th><td class="pt">${f.pts}</td><td>${f.pj}</td><td>${f.gf}:${f.gc}</td><td>${f.dg}</td><td>${f.g}</td><td>${f.e}</td><td>${f.p}</td>
+      <th scope="row"><span class="nom">${escudo(LIGAS[S.liga].espn, f.n, f.k)}<a class="eqlink" href="${hrefEquipo(LIGAS[S.liga].espn, nombreReal(LIGAS[S.liga].espn, f.n, f.k))}">${esc(f.n)}</a></span></th><td class="pt">${f.pts}</td><td>${f.pj}</td><td>${f.gf}:${f.gc}</td><td>${f.dg}</td><td>${f.g}</td><td>${f.e}</td><td>${f.p}</td>
       ${conProm ? `<td>${f.prom != null ? f.prom.toFixed(3) : ''}</td>` : ''}${conUlt ? `<td class="ult">${ult(f).map(r => `<span class="fm ${r}" title="${nombres[r]}">${r}</span>`).join('')}</td>` : ''}</tr>`).join('') +
     `</tbody></table></div>` +
     (ley.length ? `<div class="zpie">${ley.map(n => `<span><i style="background:${color(n.c)}"></i>${esc(n.d)}</span>`).join('')}</div>` : '') +
@@ -1198,6 +1250,7 @@ function elegirLiga(i){
 
 function render(){
   if(S.ficha){ renderFicha(); return; }
+  if(S.equipo){ renderEquipo(); return; }
   if(LIGAS[S.liga].sinPos && S.vista === 'tabla') S.vista = 'partidos';   // amistosos y supercopas no tienen tabla de posiciones
   const tk = ++S.tk, slug = LIGAS[S.liga].espn, main = document.getElementById('contenido');
   document.title = S.vista === 'inicio' ? 'Chomiedos: resultados y posiciones de fútbol'
@@ -1286,14 +1339,25 @@ async function pedirFicha(slug, id){
 }
 
 function leerHash(){
-  const m = location.hash.match(/^#partido\/([^/]+)\/([^/]+)$/);
-  S.ficha = m ? {slug:decodeURIComponent(m[1]), id:decodeURIComponent(m[2])} : null;
+  const f = location.hash.match(/^#partido\/([^/]+)\/([^/]+)$/), e = location.hash.match(/^#equipo\/([^/]+)\/(.+)$/);
+  try{
+    S.ficha = f ? {slug:decodeURIComponent(f[1]), id:decodeURIComponent(f[2])} : null;
+    S.equipo = e ? {slug:decodeURIComponent(e[1]), nombre:decodeURIComponent(e[2])} : null;
+  } catch(err){ S.ficha = S.equipo = null; }   // enlace mal formado
 }
+const hrefEquipo = (slug, nombre) => `#equipo/${encodeURIComponent(slug)}/${encodeURIComponent(nombre)}`;
+// Aviso cuando ya cambió el año y la configuración de arriba sigue siendo la de la temporada anterior
+function avisoTemporada(){
+  const anio = new Date().getFullYear();
+  if(anio <= TEMPORADA.anio) return '';
+  return `<p class="nota" role="status">Las fechas de los torneos, los equipos y los puntos de temporadas anteriores de estas tablas son de la temporada ${TEMPORADA.anio}. Si ya empezó la ${anio}, falta actualizar esa configuración y las cifras pueden estar mal.</p>`;
+}
+
 function irInicio(e){   // el logo y el nombre de la página llevan a la pantalla principal
   e?.preventDefault();
   abrirMenu(false);
-  if(S.ficha || location.hash) history.replaceState(null, '', location.pathname + location.search);
-  S.ficha = null; S.vista = 'inicio'; S.vinoDeLista = false;
+  if(S.ficha || S.equipo || location.hash) history.replaceState(null, '', location.pathname + location.search);
+  S.ficha = null; S.equipo = null; S.vista = 'inicio'; S.vinoDeLista = false;
   render(); window.scrollTo(0, 0);
 }
 function volverDeFicha(){
@@ -1302,11 +1366,76 @@ function volverDeFicha(){
   leerHash(); render();
 }
 window.addEventListener('hashchange', () => {
-  const antes = S.ficha;
-  if(!antes && /^#partido\//.test(location.hash)){ S.restaurar = window.scrollY; S.vinoDeLista = true; }
+  const antes = S.ficha || S.equipo;
+  if(!antes && /^#(partido|equipo)\//.test(location.hash)){ S.restaurar = window.scrollY; S.vinoDeLista = true; }
   leerHash();
   render();
 });
+
+/* ===== Equipos favoritos y página de cada equipo =====
+   Los favoritos se guardan solo en este navegador (localStorage); no se envían a ningún lado. */
+const CLAVE_FAV = 'chomiedos-favoritos-v1';
+const leerFavoritos = () => { try{ const v = JSON.parse(localStorage.getItem(CLAVE_FAV) || '[]'); return Array.isArray(v) ? v.filter(x => x && typeof x.k === 'string' && typeof x.n === 'string') : []; } catch(e){ return []; } };
+let FAVS = leerFavoritos();   // [{k: clave del nombre, n: nombre, s: liga desde la que se eligió}]
+const esFav = n => FAVS.some(f => f.k === normNombre(n));
+const esDeFav = p => FAVS.length > 0 && (esFav(p.h) || esFav(p.v));
+function alternarFav(slug, nombre){
+  const k = normNombre(nombre);
+  FAVS = esFav(nombre) ? FAVS.filter(f => f.k !== k) : [...FAVS, {k, n:nombre, s:slug}];
+  try{ localStorage.setItem(CLAVE_FAV, JSON.stringify(FAVS)); } catch(e){}   // sin almacenamiento, vale solo mientras la página está abierta
+  S.refoco = '.seguir';
+  render();
+}
+
+// Las tablas de Uruguay, Colombia y los promedios usan nombres cortos: se vuelve al nombre con que ESPN escribe el equipo en los partidos
+function nombreReal(slug, n, k){
+  const kf = CLAVE_LIGA[slug], m = ESCUDOS[slug] || {};
+  if(!kf) return n;
+  const clave = k || kf(n);
+  return Object.keys(m).find(x => x[0] !== '@' && kf(x) === clave) || n;
+}
+
+async function renderEquipo(){
+  const {slug, nombre} = S.equipo, tk = ++S.tk, main = document.getElementById('contenido');
+  document.querySelector('.liga-menu').hidden = true;
+  if(!LIGAS.some(l => l.espn === slug)){ S.equipo = null; render(); return; }
+  const k = normNombre(nombre), es = n => normNombre(n) === k;
+  const todas = await Promise.all(LIGAS.map(async l => ({l, D:await datosLiga(l.espn)})));
+  const juega = todas.filter(({D}) => D.partidos.some(p => es(p.h) || es(p.v)) || (D.tabla || []).some(g => g.filas?.some(f => es(f.n))));
+  const mezclados = await Promise.all(juega.map(async ({l, D}) => ({l, D, ps:(await partidosEnVivo(D, l.espn)).ps})));
+  if(tk !== S.tk) return;
+  const mios = [];
+  mezclados.forEach(({l, ps}) => ps.filter(p => es(p.h) || es(p.v)).forEach(p => mios.push({...p, liga:l.n, ligaSlug:l.espn})));
+  const proximos = mios.filter(p => !terminado(p)).sort(porFecha).slice(0, 8);
+  const resultados = mios.filter(terminado).sort((a, b) => porFecha(b, a)).slice(0, 10);
+  const forma = mios.filter(terminado).sort(porFecha).slice(-5).map(p => {
+    const loc = es(p.h), a = +(loc ? p.gl : p.gv), b = +(loc ? p.gv : p.gl);
+    return a > b ? 'V' : a < b ? 'D' : 'E';
+  });
+  const nombres = {V:'Victoria', E:'Empate', D:'Derrota'};
+  // posición en las tablas de ESPN de cada competición
+  const posiciones = [];
+  mezclados.forEach(({l, D}) => (D.tabla || []).forEach(g => (g.filas || []).forEach((f, i) => {
+    if(es(f.n)) posiciones.push(`<li><span>${esc(l.n)}${g.nombre ? ' · ' + esc(String(g.nombre).replace(/^Group /, 'Grupo ')) : ''}</span><b>${f.rank || i + 1}.º</b><small>${f.pts} pts · ${f.pj} PJ</small></li>`);
+  })));
+  const fav = esFav(nombre);
+  const atras = `<button type="button" class="atras" onclick="volverDeFicha()"><span aria-hidden="true">←</span> Volver</button>`;
+  const h = atras + `<article class="equipo" aria-labelledby="eqTit">
+    <div class="equipo-cab">${escudo(slug, nombre)}<div><h2 id="eqTit" tabindex="-1">${esc(nombre)}</h2><p>${juega.length ? 'Juega en: ' + juega.map(({l}) => esc(l.n)).join(', ') : 'No encontramos partidos de este equipo en los datos.'}</p></div>
+      <button type="button" class="seguir" aria-pressed="${fav}" aria-label="Seguir a ${esc(nombre)}" data-s="${esc(slug)}" data-n="${esc(nombre)}" onclick="alternarFav(this.dataset.s, this.dataset.n)"><span aria-hidden="true">${fav ? '★' : '☆'}</span> ${fav ? 'Siguiendo' : 'Seguir'}</button></div>
+    ${forma.length ? `<p class="forma"><span>Últimos resultados</span>${forma.map(r => `<span class="fm ${r}" title="${nombres[r]}">${r}</span>`).join('')}</p>` : ''}
+    ${fav ? '' : '<p class="nota">Si lo seguís, sus partidos aparecen primero en el Inicio.</p>'}
+    <h3>Próximos partidos</h3>${proximos.length ? `<ul class="lista">${proximos.map(p => htmlPartido(p, true, true)).join('')}</ul>` : '<p class="nota" role="status">No hay partidos próximos cargados.</p>'}
+    <h3>Últimos resultados</h3>${resultados.length ? `<ul class="lista">${resultados.map(p => htmlPartido(p, true, true)).join('')}</ul>` : '<p class="nota" role="status">Todavía no hay resultados cargados.</p>'}
+    ${posiciones.length ? `<h3>Posiciones</h3><ul class="posic">${posiciones.join('')}</ul>` : ''}</article>`;
+  document.title = `${nombre} · Chomiedos`;
+  if(main._h !== h){
+    main.innerHTML = h; main._h = h;
+    if(S.fichaFoco !== 'eq/' + slug + '/' + nombre){ S.fichaFoco = 'eq/' + slug + '/' + nombre; document.getElementById('eqTit')?.focus(); window.scrollTo(0, 0); }
+  }
+  if(S.refoco){ document.querySelector(S.refoco)?.focus(); S.refoco = ''; }
+  if(PROXY) programar(mios.some(p => p.estado === 'in') ? 20000 : 60000);
+}
 
 async function renderFicha(){
   const {slug, id} = S.ficha, tk = ++S.tk, main = document.getElementById('contenido');
@@ -1329,7 +1458,7 @@ async function renderFicha(){
   const jug = p.estado !== 'pre', enjuego = p.estado === 'in', susp = p.estado === 'post' && !p.completo;
   const centro = susp ? '–' : jug ? `<span class="sr">Resultado: </span>${esc(p.gl)} - ${esc(p.gv)}` : `<span class="sr">Comienza a las </span>${valida ? fecha.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', hourCycle:'h23'}) : ''}`;
   const estado = enjuego ? `<i class="punto"></i>En vivo ${esc(p.detalle)}` : susp ? esc(p.detalle) : jug ? 'Final' + (p.pl != null && p.pv != null ? ` · penales ${esc(p.pl)}-${esc(p.pv)}` : '') : '';
-  const cab = `<div class="m"><span class="eq h"><span>${esc(p.h)}</span>${escudo(slug, p.h)}</span><span class="sc ${jug && !susp ? '' : 'next'}">${centro}${estado ? `<small class="est ${enjuego ? 'vivo' : ''}">${estado}</small>` : ''}</span><span class="eq">${escudo(slug, p.v)}<span>${esc(p.v)}</span></span></div>`;
+  const cab = `<div class="m"><span class="eq h"><a class="eqlink" href="${hrefEquipo(slug, p.h)}">${esc(p.h)}</a>${escudo(slug, p.h)}</span><span class="sc ${jug && !susp ? '' : 'next'}">${centro}${estado ? `<small class="est ${enjuego ? 'vivo' : ''}">${estado}</small>` : ''}</span><span class="eq">${escudo(slug, p.v)}<a class="eqlink" href="${hrefEquipo(slug, p.v)}">${esc(p.v)}</a></span></div>`;
 
   // eventos: los del resumen de ESPN; si no hay, los goles que ya tenemos guardados
   let eventos = F?.eventos || [];
@@ -1415,12 +1544,20 @@ async function cargar(cab, tk, slug){
         porLiga.sort((a, b) => prioridadInicio(a.slug) - prioridadInicio(b.slug));   // el orden de las competiciones en el Inicio
         return porLiga.map(g => `<h3 class="lg">${esc(g.n)}</h3><ul class="lista">${g.ps.map(p => htmlPartido(p, COPAS.includes(p.ligaSlug))).join('')}</ul>`).join('');
       };
-      const listar = lista => S.orden === 'hora'
+      const listarOrden = lista => S.orden === 'hora'
         ? `<ul class="lista">${[...lista].sort((a, b) => porHora(a, b) || prioridadInicio(a.ligaSlug) - prioridadInicio(b.ligaSlug)).map(p => htmlPartido(p, COPAS.includes(p.ligaSlug), true)).join('')}</ul>`
         : agrupar(lista);
+      // los partidos de los equipos que seguís van primero, en su propio bloque
+      const listar = lista => {
+        const favs = lista.filter(esDeFav), resto = lista.filter(p => !esDeFav(p));
+        return (favs.length ? `<h3 class="lg">Tus equipos</h3><ul class="lista">${[...favs].sort(porHora).map(p => htmlPartido(p, COPAS.includes(p.ligaSlug), true)).join('')}</ul>` : '') + (resto.length ? listarOrden(resto) : '');
+      };
+      const misEquipos = FAVS.length
+        ? `<nav class="mis-equipos" aria-label="Tus equipos">${FAVS.map(f => `<a class="chip-eq" href="${hrefEquipo(f.s, f.n)}">${escudo(f.s, f.n)}<span>${esc(f.n)}</span></a>`).join('')}</nav>`
+        : '<p class="pista">Tocá el nombre de un equipo en una tabla para seguirlo: sus partidos van a aparecer primero acá.</p>';
       const orden = `<div class="ord" role="group" aria-label="Ordenar los partidos">` + [['liga', 'Por liga'], ['hora', 'Por horario']].map(([k, t]) =>
         `<button type="button" data-k="ord-${k}" aria-pressed="${S.orden === k}" onclick="S.orden='${k}';render()">${t}</button>`).join('') + `</div>`;
-      const boton = `<div class="barra-inicio"><button type="button" class="vivo-btn" data-k="solovivo" aria-pressed="${S.soloVivo}" onclick="S.soloVivo=!S.soloVivo;render()"><i class="punto" aria-hidden="true"></i>En vivo</button>${orden}</div>`;
+      const boton = `<div class="barra-inicio"><button type="button" class="vivo-btn" data-k="solovivo" aria-pressed="${S.soloVivo}" onclick="S.soloVivo=!S.soloVivo;render()"><i class="punto" aria-hidden="true"></i>En vivo</button>${orden}</div>${misEquipos}`;
       let partidos;
       if(S.soloVivo){
         // los que se están jugando ahora: de ayer (por si cruzan la medianoche) y de hoy, sin importar el día elegido
@@ -1486,16 +1623,13 @@ async function cargar(cab, tk, slug){
       const tv = await vivoTabla(slug);
       const EV = await partidosEnVivo(D, slug), PS = EV.ps;
       FORMA = formaPorEquipo(PS);
-      const apertura = D.apertura ? tablaPeriodo(PS, '2026-01-01T00:00:00Z', slug === 'uru.1' ? '2026-05-30T00:00:00Z' : '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0) : null;
-      const intermedio = D.intermedio ? tablaPeriodo(PS, '2026-05-30T00:00:00Z', '2026-07-20T00:00:00Z') : null;
-      const clausura = D.clausura ? tablaPeriodo(PS, '2026-07-20T00:00:00Z') : null;
+      const VA = TEMPORADA.arg.ventanas, NA = TEMPORADA.arg.partidos;
+      const apertura = D.apertura ? tablaPeriodo(PS, VA.apertura[0], VA.apertura[1], slug === 'arg.1' ? NA.apertura : 0) : null;
       const aperturaZonas = ['arg.1','arg.2'].includes(slug) && D.apertura
-        ? tablasPorZonas(PS, D.tabla, slug, '2026-01-01T00:00:00Z', '2026-07-01T00:00:00Z', slug === 'arg.1' ? 16 : 0)
+        ? tablasPorZonas(PS, D.tabla, slug, VA.apertura[0], VA.apertura[1], slug === 'arg.1' ? NA.apertura : 0)
         : null;
       const anual = D.anual ? (EV.vivo ? tablaAnual(PS, slug) : D.anual) : null;
       if(apertura) marcar(apertura, REGLAS[slug]?.apertura || []);
-      if(intermedio) marcar(intermedio, REGLAS[slug]?.intermedio || []);
-      if(clausura) marcar(clausura, REGLAS[slug]?.clausura || []);
       if(anual) marcar(anual, REGLAS[slug]?.anual || []);
       activo = hayActividad(PS);
       if(slug === 'arg.1' && !['apertura', 'clausura', 'anual', 'promedios'].includes(S.sub)) S.sub = 'clausura';
@@ -1519,6 +1653,7 @@ async function cargar(cab, tk, slug){
         h += `<div class="seg chico" role="group" aria-label="Tipo de tabla">` + opciones.map(([k,t]) =>
           `<button data-k="s-${k}" aria-pressed="${S.sub === k}" onclick="S.sub='${k}';render()">${t}</button>`).join('') + `</div>`;
       }
+      if(slug === 'arg.1') h += avisoTemporada();
       if(slug === 'arg.2'){
         const zonas = tv || D.tabla;   // en vivo con el Worker; si falla, los datos de GitHub
         h += zonas.map(g => {
@@ -1532,9 +1667,6 @@ async function cargar(cab, tk, slug){
           ? aperturaZonas.map(g => htmlTabla(g.filas, g.nombre, aperturaZonas.length > 1)).join('')
           : htmlTabla(apertura.length ? apertura : D.apertura, 'Torneo Apertura');
         h += slug === 'arg.1' ? selFase() + (S.fase === 'playoffs' ? htmlPlayoffs(slug, PS, 'apertura') : tablasAp) : tablasAp;
-      } else if(D.intermedio && S.sub === 'intermedio'){
-        marcar(D.intermedio, REGLAS[slug]?.intermedio || []);
-        h += htmlTabla(intermedio.length ? intermedio : D.intermedio, 'Torneo Intermedio');
       } else if(slug === 'arg.1' && S.sub === 'clausura'){
         const zonas = tv || D.tabla;   // posiciones de ESPN, en vivo con el Worker; si falla, los datos de GitHub
         const tablasCl = zonas.map(g => {
@@ -1545,7 +1677,7 @@ async function cargar(cab, tk, slug){
         h += selFase() + (S.fase === 'playoffs' ? htmlPlayoffs(slug, PS, 'clausura') : tablasCl);
       } else if(D.clausura && S.sub === 'clausura'){
         marcar(D.clausura, REGLAS[slug]?.clausura || []);
-        h += htmlTabla(clausura.length ? clausura : D.clausura, 'Torneo Clausura');
+        h += htmlTabla(D.clausura, 'Torneo Clausura');
       } else if(D.anual && S.sub === 'anual'){
         h += htmlTabla(anual, 'Tabla Anual') + (slug === 'arg.1' ? `<p class="nota">Suma la fase regular del Apertura y del Clausura (los playoffs no cuentan).
           * Los cupos se corren si algún equipo ya clasificó por otra vía (campeones, Copa Argentina). También desciende el último

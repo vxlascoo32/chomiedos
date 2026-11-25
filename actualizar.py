@@ -41,6 +41,54 @@ LIGAS = {
     'uefa.champions': date(2026, 9, 1),   # UEFA Champions League
     'uefa.europa': date(2026, 9, 1),      # UEFA Europa League
 }
+
+
+# ===== CONFIGURACIÓN DE LA TEMPORADA =====
+# Lo que cambia de un año al otro está acá y al principio del <script> de index.html (bloque TEMPORADA).
+# Al empezar una temporada nueva hay que revisar (el detalle está en CAMBIO_DE_TEMPORADA.md):
+#   1. LIGAS (fechas de inicio de cada competición) y estas fechas de corte.
+#   2. Los equipos y grupos de Uruguay, por los ascensos y descensos.
+#   3. Los puntos de menos por decisión de la Federación.
+# Las fechas están en UTC y con el formato de ESPN.
+# Temporada en curso de cada tipo de competición. Cuando cambiás un valor (y las fechas de LIGAS), la próxima
+# ejecución guarda sola los datos de la temporada anterior en datos/<temporada>/ y empieza la nueva de cero.
+# Nada se borra: si algo no cuadra, la copia queda en datos/ y el programa se detiene con un mensaje.
+TEMPORADA_ACTUAL = {'calendario': '2026', 'europa': '2026-27'}
+EUROPA = {'eng.1', 'esp.1', 'ita.1', 'ger.1', 'fra.1', 'uefa.champions', 'uefa.europa', 'uefa.nations'}   # temporadas que cruzan de un año al otro
+
+INICIO_TEMPORADA = '2026-01-01T00:00:00Z'   # desde acá cuentan los partidos del año
+CORTE_ARG = '2026-07-01T00:00:00Z'          # el Clausura argentino empieza después de esta fecha
+PARTIDOS_ARG = 16                            # partidos de la fase regular por torneo (los playoffs no cuentan)
+
+# Liga uruguaya: Apertura, Intermedio, Clausura. La misma lógica está en index.html (si cambiás una, cambiá la otra).
+URU_VENTANAS = {
+    'apertura': ('2026-01-01T00:00Z', '2026-05-13T00:00Z'),     # 15 fechas, hasta el 11 de mayo
+    'intermedio': ('2026-05-13T00:00Z', '2026-08-06T12:00Z'),   # del 15 de mayo al 5 de agosto (final incluida)
+    'clausura': ('2026-08-06T12:00Z', None),                    # desde el 7 de agosto
+}
+URU_NOMBRES = {
+    'penarol': 'Peñarol', 'cerro_largo': 'Cerro Largo', 'racing': 'Racing', 'liverpool': 'Liverpool',
+    'central_espanol': 'Central Español', 'cerro': 'Cerro', 'defensor': 'Defensor Sp.', 'boston_river': 'Boston River',
+    'wanderers': 'Wanderers', 'nacional': 'Nacional', 'maldonado': 'Deportivo Maldonado', 'city_torque': 'City Torque',
+    'juventud': 'Juventud', 'albion': 'Albion', 'progreso': 'Progreso', 'danubio': 'Danubio',
+}
+URU_CLAVES = [(k, re.compile(r)) for k, r in [
+    ('cerro_largo', r'cerro largo'), ('central_espanol', r'central espanol'), ('cerro', r'\bcerro\b'),
+    ('penarol', r'penarol'), ('nacional', r'nacional'), ('defensor', r'defensor'), ('danubio', r'danubio'),
+    ('wanderers', r'wanderers'), ('liverpool', r'liverpool'), ('racing', r'racing'), ('boston_river', r'boston'),
+    ('city_torque', r'torque'), ('maldonado', r'maldonado'), ('juventud', r'juventud'),
+    ('albion', r'albion'), ('progreso', r'progreso'),
+]]
+URU_GRUPOS = {
+    'Grupo A': ['penarol', 'cerro_largo', 'racing', 'liverpool', 'central_espanol', 'cerro', 'defensor', 'boston_river'],
+    'Grupo B': ['wanderers', 'nacional', 'maldonado', 'city_torque', 'juventud', 'albion', 'progreso', 'danubio'],
+}
+# Puntos de menos por decisión de la Federación (cada uno se descuenta una sola vez en la anual).
+URU_AJUSTES = {
+    'intermedio': {'cerro': (-1, 'Decisión de la Federación')},
+    'clausura': {'penarol': (-1, 'Decisión de la Federación')},
+    'anual': {'cerro': (-1, 'Decisión de la Federación'), 'penarol': (-1, 'Decisión de la Federación')},
+}
 BASE = 'https://site.api.espn.com/apis/'
 
 # Marcas de posiciones para las tablas que ESPN no marca: (desde, hasta, texto, color).
@@ -286,8 +334,8 @@ def tablas_por_zonas(partidos, grupos, slug, desde=None, hasta=None, limite_por_
 def tabla_anual(partidos, slug):
     if slug == 'arg.1':
         filas = {}
-        for f in (tabla_periodo(partidos, hasta='2026-07-01T00:00:00Z', limite_por_equipo=16) +
-                  tabla_periodo(partidos, desde='2026-07-01T00:00:00Z', limite_por_equipo=16)):
+        for f in (tabla_periodo(partidos, hasta=CORTE_ARG, limite_por_equipo=PARTIDOS_ARG) +
+                  tabla_periodo(partidos, desde=CORTE_ARG, limite_por_equipo=PARTIDOS_ARG)):
             t = filas.setdefault(f['n'], {'n': f['n'], 'pj': 0, 'g': 0, 'e': 0, 'p': 0, 'gf': 0, 'gc': 0})
             for k in ('pj', 'g', 'e', 'p', 'gf', 'gc'):
                 t[k] += f[k]
@@ -297,11 +345,11 @@ def tabla_anual(partidos, slug):
             f['pts'] = f['g'] * 3 + f['e']
         marcar(orden, REGLAS.get(slug, {}).get('anual', []))
         return orden
-    return tabla_periodo(partidos, desde='2026-01-01T00:00:00Z', slug=slug)
+    return tabla_periodo(partidos, desde=INICIO_TEMPORADA, slug=slug)
 
 
 def tabla_promedios(partidos, slug):
-    filas = tabla_periodo(partidos, desde='2026-01-01T00:00:00Z')
+    filas = tabla_periodo(partidos, desde=INICIO_TEMPORADA)
     for fila in filas:
         fila['prom'] = round(fila['pts'] / fila['pj'], 3) if fila['pj'] else 0
     filas.sort(key=lambda f: (-f['prom'], -f['pts'], -f['dg'], -f['gf']))
@@ -313,34 +361,7 @@ def tabla_promedios(partidos, slug):
 # Cada torneo tiene su ventana de fechas (en UTC, mismo formato que ESPN). Adentro de cada ventana cada
 # cruce cuenta una sola vez: así no entran las finales ni los desempates, y el Intermedio solo cuenta
 # los partidos dentro de cada zona. La misma lógica está en index.html (si cambiás una, cambiá la otra).
-URU_VENTANAS = {
-    'apertura': ('2026-01-01T00:00Z', '2026-05-13T00:00Z'),     # 15 fechas, hasta el 11 de mayo
-    'intermedio': ('2026-05-13T00:00Z', '2026-08-06T12:00Z'),   # del 15 de mayo al 5 de agosto (final incluida)
-    'clausura': ('2026-08-06T12:00Z', None),                    # desde el 7 de agosto
-}
-URU_NOMBRES = {
-    'penarol': 'Peñarol', 'cerro_largo': 'Cerro Largo', 'racing': 'Racing', 'liverpool': 'Liverpool',
-    'central_espanol': 'Central Español', 'cerro': 'Cerro', 'defensor': 'Defensor Sp.', 'boston_river': 'Boston River',
-    'wanderers': 'Wanderers', 'nacional': 'Nacional', 'maldonado': 'Deportivo Maldonado', 'city_torque': 'City Torque',
-    'juventud': 'Juventud', 'albion': 'Albion', 'progreso': 'Progreso', 'danubio': 'Danubio',
-}
-URU_CLAVES = [(k, re.compile(r)) for k, r in [
-    ('cerro_largo', r'cerro largo'), ('central_espanol', r'central espanol'), ('cerro', r'\bcerro\b'),
-    ('penarol', r'penarol'), ('nacional', r'nacional'), ('defensor', r'defensor'), ('danubio', r'danubio'),
-    ('wanderers', r'wanderers'), ('liverpool', r'liverpool'), ('racing', r'racing'), ('boston_river', r'boston'),
-    ('city_torque', r'torque'), ('maldonado', r'maldonado'), ('juventud', r'juventud'),
-    ('albion', r'albion'), ('progreso', r'progreso'),
-]]
-URU_GRUPOS = {
-    'Grupo A': ['penarol', 'cerro_largo', 'racing', 'liverpool', 'central_espanol', 'cerro', 'defensor', 'boston_river'],
-    'Grupo B': ['wanderers', 'nacional', 'maldonado', 'city_torque', 'juventud', 'albion', 'progreso', 'danubio'],
-}
-# Puntos de menos por decisión de la Federación (cada uno se descuenta una sola vez en la anual).
-URU_AJUSTES = {
-    'intermedio': {'cerro': (-1, 'Decisión de la Federación')},
-    'clausura': {'penarol': (-1, 'Decisión de la Federación')},
-    'anual': {'cerro': (-1, 'Decisión de la Federación'), 'penarol': (-1, 'Decisión de la Federación')},
-}
+# (las constantes de la temporada de Uruguay están al principio del archivo, en CONFIGURACIÓN DE LA TEMPORADA)
 
 
 def clave_uru(nombre):
@@ -446,6 +467,91 @@ def datos_uru(partidos):
 
 
 
+def grupo_de(slug):
+    return 'europa' if slug in EUROPA else 'calendario'
+
+
+def guardar_json(ruta, contenido, ordenar=False):
+    """Escribe de a un archivo a la vez y recién al terminar lo deja en su lugar (nunca queda a medias)."""
+    os.makedirs(os.path.dirname(ruta) or '.', exist_ok=True)
+    tmp = ruta + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(contenido, f, ensure_ascii=False, sort_keys=ordenar)
+    os.replace(tmp, ruta)
+
+
+def limpiar_temporales():
+    """Borra restos de escrituras que se cortaron (para que no se suban a GitHub)."""
+    for carpeta, _, archivos in os.walk('datos'):
+        for nombre in archivos:
+            if nombre.endswith('.tmp'):
+                os.remove(os.path.join(carpeta, nombre))
+
+
+def etiqueta_de_datos(slug, datos):
+    """Temporada a la que pertenecen los datos de un archivo. Los archivos viejos no la traen: se deduce del último partido."""
+    if datos.get('temporada'):
+        return str(datos['temporada'])
+    fechas = [p['fecha'] for p in datos.get('partidos', []) if p.get('fecha')]
+    if not fechas:
+        return TEMPORADA_ACTUAL[grupo_de(slug)]   # no hay nada que archivar
+    anio, mes = int(max(fechas)[:4]), int(max(fechas)[5:7])
+    if grupo_de(slug) == 'europa':
+        inicio = anio if mes >= 7 else anio - 1
+        return f'{inicio}-{(inicio + 1) % 100:02d}'
+    return str(anio)
+
+
+def fecha_corresponde(slug, inicio, etiqueta):
+    """La fecha de inicio de LIGAS tiene que ser de la temporada en curso (para no mezclar años)."""
+    anio = int(etiqueta[:4])
+    return inicio.year == anio
+
+
+def leer_manifiesto():
+    ruta = 'datos/temporadas.json'
+    if os.path.exists(ruta):
+        with open(ruta, encoding='utf-8') as f:
+            m = json.load(f)
+    else:
+        m = {}
+    m.setdefault('temporadas', {})
+    m.setdefault('actual', {})
+    return m
+
+
+def registrar_temporada(etiqueta, slug):
+    m = leer_manifiesto()
+    m['temporadas'][etiqueta] = sorted(set(m['temporadas'].get(etiqueta, [])) | {slug})
+    guardar_json('datos/temporadas.json', m, ordenar=True)
+
+
+def escribir_actual():
+    """Anota en el manifiesto cuál es la temporada en curso de cada competición (index.html lo usa para rotular)."""
+    m = leer_manifiesto()
+    actual = {slug: TEMPORADA_ACTUAL[grupo_de(slug)] for slug in LIGAS}
+    if m['actual'] != actual:
+        m['actual'] = actual
+        guardar_json('datos/temporadas.json', m, ordenar=True)
+
+
+def archivar_temporada(slug, datos, etiqueta):
+    """Guarda la temporada que terminó en datos/<temporada>/<liga>.json. Nunca pisa una copia distinta."""
+    destino = f'datos/{etiqueta}/{slug}.json'
+    if os.path.exists(destino):
+        with open(destino, encoding='utf-8') as f:
+            existente = json.load(f)
+        if existente != datos:
+            sys.exit(f'{slug}: ya existe {destino} con otro contenido. No se archivó para no perder datos: revisalo a mano.')
+    else:
+        guardar_json(destino, datos)
+        with open(destino, encoding='utf-8') as f:
+            if json.load(f) != datos:
+                os.remove(destino)
+                sys.exit(f'{slug}: la copia de {destino} no coincide con el original. No se archivó.')
+    registrar_temporada(etiqueta, slug)
+
+
 def hay_actividad(partidos):
     """True si hay un partido en juego, por empezar (15 min) o que terminó hace menos de 3 horas."""
     ahora = datetime.now(timezone.utc)
@@ -467,6 +573,16 @@ def actualizar(slug, inicio, historial, forzar):
     if os.path.exists(archivo):
         with open(archivo, encoding='utf-8') as f:
             anterior = json.load(f)
+    etiqueta = TEMPORADA_ACTUAL[grupo_de(slug)]
+    if not fecha_corresponde(slug, inicio, etiqueta):
+        sys.exit(f'{slug}: la fecha de inicio de LIGAS ({inicio}) no es de la temporada {etiqueta}. Actualizá LIGAS antes de cambiar de temporada.')
+    if anterior:
+        previa = etiqueta_de_datos(slug, anterior)
+        if previa != etiqueta:   # cambió la temporada: lo anterior se guarda y se empieza de cero
+            archivar_temporada(slug, anterior, previa)
+            print(f'{slug}: temporada {previa} archivada en datos/{previa}/, empieza la {etiqueta}')
+            anterior = {}
+            historial = True   # la temporada nueva se baja entera desde su fecha de inicio
     partidos = anterior.get('partidos', [])
     escudos = dict(anterior.get('escudos', {}))
 
@@ -506,24 +622,27 @@ def actualizar(slug, inicio, historial, forzar):
                 break   # si fallan los primeros días seguidos, la liga no existe o ESPN no responde
         dia += timedelta(days=1)
         time.sleep(0.25)
-    if errores == dias:
+    if dias and errores == dias:
         sys.exit(f'No se pudo bajar ningún día de {slug}.')
 
-    try:
-        filas = tabla(slug, escudos)
-    except Exception as err:
-        print(f'  tabla: {err}')
-        filas = anterior.get('tabla', [])
+    if not dias:   # la temporada todavía no empezó: no hay partidos y ESPN seguiría mostrando la tabla de la anterior
+        filas = []
+    else:
+        try:
+            filas = tabla(slug, escudos)
+        except Exception as err:
+            print(f'  tabla: {err}')
+            filas = anterior.get('tabla', [])
 
     partidos.sort(key=lambda p: (p['fecha'] or '', p['id'] or ''))
     unicos = {}
     for p in partidos:   # si un id aparece dos veces (partido postergado), queda el de fecha más nueva
         unicos[p['id'] or f"sin-id-{len(unicos)}"] = p
     partidos = list(unicos.values())
-    nuevo = {'partidos': partidos, 'tabla': filas, 'escudos': dict(sorted(escudos.items()))}
+    nuevo = {'temporada': etiqueta, 'partidos': partidos, 'tabla': filas, 'escudos': dict(sorted(escudos.items()))}
     if slug == 'arg.1':
-        nuevo['apertura'] = tablas_por_zonas(partidos, filas, slug, hasta='2026-07-01T00:00:00Z', limite_por_equipo=16)
-        nuevo['clausura'] = tablas_por_zonas(partidos, filas, slug, desde='2026-07-01T00:00:00Z', limite_por_equipo=16)
+        nuevo['apertura'] = tablas_por_zonas(partidos, filas, slug, hasta=CORTE_ARG, limite_por_equipo=PARTIDOS_ARG)
+        nuevo['clausura'] = tablas_por_zonas(partidos, filas, slug, desde=CORTE_ARG, limite_por_equipo=PARTIDOS_ARG)
         nuevo['anual'] = tabla_anual(partidos, slug)
         # los promedios (con las temporadas anteriores) los calcula index.html
     if slug == 'uru.1':
@@ -533,9 +652,7 @@ def actualizar(slug, inicio, historial, forzar):
     if nuevo == previo:
         print(f'{slug}: sin cambios')
         return   # no se escribe nada, así GitHub no registra cambios de más
-    os.makedirs('datos', exist_ok=True)
-    with open(archivo, 'w', encoding='utf-8') as f:
-        json.dump({'actualizado': ahora.isoformat(), **nuevo}, f, ensure_ascii=False)
+    guardar_json(archivo, {'actualizado': ahora.isoformat(), **nuevo})
     print(f'{slug}: {len(partidos)} partidos, {errores} días con error')
 
 
@@ -543,6 +660,7 @@ if __name__ == '__main__':
     historial = '--historial' in sys.argv
     forzar = '--forzar' in sys.argv
     fallaron = []
+    limpiar_temporales()
     for slug, inicio in LIGAS.items():
         try:
             actualizar(slug, inicio, historial, forzar)
@@ -551,5 +669,6 @@ if __name__ == '__main__':
             fallaron.append(slug)
     if fallaron:
         print('Ligas que no se pudieron bajar:', ', '.join(fallaron))
+    escribir_actual()
     if len(fallaron) == len(LIGAS):
         sys.exit(1)
